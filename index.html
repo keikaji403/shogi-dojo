@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="四間飛車道場２">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#faf7f0">
+<title>四間飛車道場２ 〜初段への道・実戦編〜</title>
+<style>
+:root{
+  --bg:#faf7f0; --card:#ffffff; --ink:#2b2620; --muted:#8a8174; --line:#e8e1d3;
+  --green:#1d9e75; --green-dark:#0f6e56; --green-bg:#e1f5ee;
+  --red:#d85a30; --red-bg:#faece7;
+  --gold:#ba7517; --gold-bg:#faeeda;
+  --purple:#534ab7; --purple-bg:#eeedfe;
+  --board:#f3dfae; --board-line:#9a6b2f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;line-height:1.6}
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:960px;margin:0 auto;padding:28px 20px 60px}
+header.app{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px}
+header.app h1{font-size:26px;font-weight:600;letter-spacing:.04em}
+header.app .sub{font-size:13px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:18px}
+/* ---- meter ---- */
+.meter-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.meter-head h2{font-size:18px;font-weight:600}
+.rank-now{font-size:14px;color:var(--muted)}
+.rank-now b{font-size:22px;color:var(--green-dark);margin:0 4px}
+.meter{position:relative;height:14px;background:#eee7d8;border-radius:7px;margin:18px 6px 6px}
+.meter .fill{position:absolute;left:0;top:0;height:14px;background:linear-gradient(90deg,#5dcaa5,#1d9e75);border-radius:7px;transition:width .6s ease}
+.meter .pin{position:absolute;top:-5px;width:24px;height:24px;border-radius:50%;background:var(--green-dark);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transform:translateX(-12px);transition:left .6s ease}
+.meter .ms{position:absolute;top:-3px;width:2px;height:20px;background:#cdc2ab}
+.meter-labels{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin:10px 2px 0}
+.meter-labels span.hit{color:var(--green-dark);font-weight:600}
+.stats{display:flex;gap:12px;margin-top:16px}
+.stat{flex:1;background:var(--bg);border-radius:10px;padding:10px 14px}
+.stat .l{font-size:12px;color:var(--muted)}
+.stat .v{font-size:20px;font-weight:600}
+/* ---- units ---- */
+.units{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.unit{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;cursor:pointer;transition:border-color .15s, transform .15s}
+.unit:hover{border-color:var(--green);transform:translateY(-2px)}
+.unit h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.unit .desc{font-size:13px;color:var(--muted);margin-bottom:10px;min-height:38px}
+.unit .bar{height:6px;background:#eee7d8;border-radius:3px;margin-bottom:8px}
+.unit .bar i{display:block;height:6px;background:var(--purple);border-radius:3px}
+.unit .meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.unit .done{color:var(--purple);font-weight:600}
+.unit.complete{border-color:var(--green)}
+.unit.complete h3::after{content:" ✓";color:var(--green)}
+/* ---- quiz ---- */
+.qhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.qhead .u{font-size:13px;color:var(--muted)}
+.qhead .n{font-size:13px;color:var(--muted)}
+.qhead button{font-size:13px}
+.question{font-size:17px;font-weight:600;margin-bottom:6px}
+.lastmove{font-size:13px;color:var(--gold);background:var(--gold-bg);display:inline-block;padding:2px 10px;border-radius:10px;margin-bottom:14px}
+.boardzone{display:flex;gap:26px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.hands{font-size:14px;width:120px}
+.hands .t{font-size:12px;color:var(--muted);margin-bottom:4px}
+.hands .p{font-size:18px;letter-spacing:.2em;font-family:"Hiragino Mincho ProN","Yu Mincho",serif}
+table.board{border-collapse:collapse;background:var(--board);box-shadow:0 2px 10px rgba(0,0,0,.12);border:2px solid var(--board-line)}
+table.board td{width:clamp(30px,9.2vw,46px);height:clamp(32px,9.8vw,48px);border:1px solid var(--board-line);text-align:center;vertical-align:middle;font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:clamp(15px,5vw,24px);font-weight:600;position:relative;padding:0}
+table.board td.hl{background:#f5c879}
+table.board td .g{display:inline-block;transform:rotate(180deg)}
+.coords{font-size:11px;color:var(--muted);text-align:center}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px auto 0;max-width:560px}
+.choices button{font-size:17px;padding:13px 8px;min-height:52px;border:1.5px solid var(--line);background:#fff;border-radius:10px;cursor:pointer;font-family:inherit;transition:all .12s}
+.choices button:hover:not(:disabled){border-color:var(--green);background:#f6fbf9}
+.choices button:disabled{cursor:default}
+.choices button.ok{border-color:var(--green);background:var(--green-bg);color:var(--green-dark);font-weight:600}
+.choices button.ng{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.feedback{max-width:560px;margin:18px auto 0;border-radius:12px;padding:14px 18px;font-size:15px;display:none}
+.feedback.ok{display:block;background:var(--green-bg);border:1px solid #9fe1cb}
+.feedback.ng{display:block;background:var(--red-bg);border:1px solid #f5c4b3}
+.feedback .head{font-weight:700;font-size:16px;margin-bottom:4px}
+.feedback .vid{margin-top:10px;font-size:14px}
+.feedback .vid a{color:#185fa5;text-decoration:none}
+.feedback .vid a:hover{text-decoration:underline}
+.nextbtn{display:none;margin:16px auto 0;font-size:16px;padding:11px 38px;background:var(--green-dark);color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit}
+.nextbtn:hover{background:#085041}
+button.ghost{background:none;border:1px solid var(--line);border-radius:8px;padding:6px 14px;cursor:pointer;color:var(--muted);font-family:inherit}
+button.ghost:hover{border-color:var(--muted)}
+/* ---- result ---- */
+.result{text-align:center;padding:30px 20px}
+.result h2{font-size:22px;margin-bottom:8px}
+.result .big{font-size:42px;font-weight:700;color:var(--green-dark);margin:10px 0}
+.result p{color:var(--muted);font-size:14px;margin-bottom:18px}
+/* ---- levelup overlay ---- */
+.overlay{position:fixed;inset:0;background:rgba(30,25,15,.55);display:none;align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.lvbox{background:#fff;border-radius:18px;padding:46px 60px;text-align:center;animation:pop .45s ease}
+.lvbox .small{font-size:15px;color:var(--muted)}
+.lvbox .rank{font-size:54px;font-weight:700;color:var(--gold);margin:8px 0}
+.lvbox p{font-size:15px;margin-bottom:20px}
+@keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+footer{font-size:12px;color:var(--muted);margin-top:30px;text-align:center}
+footer a{color:#185fa5}
+@media(max-width:700px){.wrap{padding:16px 10px 40px}header.app{flex-direction:column;gap:2px;align-items:flex-start}.units{grid-template-columns:1fr}.hands{width:100%;display:flex;gap:10px;align-items:baseline;justify-content:center}.card{padding:16px 12px}.stats{flex-wrap:wrap}.stat{min-width:44%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="app">
+  <h1>四間飛車道場２ <span style="font-size:15px;color:var(--muted);font-weight:400">〜初段への道・実戦編〜</span></h1>
+  <span class="sub">教科書：藤井猛九段講座＋藤倉勇樹チャンネル</span>
+</header>
+<div id="app"></div>
+<footer>
+  問題は 藤井猛九段の将棋講座（<a href="https://www.youtube.com/@eriko-yamaguchi" target="_blank">女流棋士 山口恵梨子ちゃんねる</a>）と <a href="https://www.youtube.com/@syodan.shogikouza" target="_blank">藤倉勇樹チャンネル</a> の講座テーマ、および四間飛車の定跡をもとに作成した復習用クイズです。<br>
+  進捗はこのパソコンのブラウザに自動保存されます。
+</footer>
+</div>
+<div class="overlay" id="overlay"><div class="lvbox">
+  <div class="small">レベルアップ！</div>
+  <div class="rank" id="lvRank"></div>
+  <p id="lvMsg"></p>
+  <button class="nextbtn" style="display:inline-block" onclick="closeLv()">続ける</button>
+</div></div>
+
+<script>
+const VIDEOS = {
+  w1:{t:"藤井猛九段の攻めの基本理論 攻め駒の増やし方編（山口恵梨子ちゃんねる）", u:"https://youtu.be/U8NAQbLUFh4"},
+  w2:{t:"藤井猛九段 冬の四間飛車講座#3 振り飛車で右銀急戦は怖くない！", u:"https://youtu.be/KddU8K3g9CI"},
+  w3:{t:"藤井猛九段 冬の四間飛車講座#4 本気のelmo囲い対策！", u:"https://youtu.be/OzcQum7P_yM"},
+  w4:{t:"藤井猛九段 夏の四間飛車講座#1 向かい飛車に転換して引き角に対抗！", u:"https://youtu.be/OKJ8WCkft10"},
+  w5:{t:"藤倉勇樹 #5 初めての四間飛車 指し方と攻め上がり方", u:"https://youtu.be/LLfHddg2rbg"},
+  w6:{t:"藤倉勇樹 #6 攻めをいなして逆襲！四間飛車の原始棒銀対策", u:"https://youtu.be/KylJMH__pfw"},
+  w7:{t:"藤倉勇樹 #11 攻めてきた所こそ狙い目！右四間飛車対策", u:"https://youtu.be/75fpSHQq99g"}
+};
+const UNITS = [
+  {name:"攻めの基本理論（藤井猛流）", desc:"「攻め駒は最低3枚・理想は4枚」。銀・桂・歩を攻めに参加させる考え方。", vid:"w1"},
+  {name:"対右銀急戦（怖くない！）", desc:"エルモ+右銀のスピード攻めも、受けの原則は同じ。攻められた筋に飛車！", vid:"w2"},
+  {name:"対エルモ囲い急戦", desc:"ソフト発の新型囲い。5六銀で仕掛けを封じ、跳んできた桂は銀で食いちぎる。", vid:"w3"},
+  {name:"対引き角（向かい飛車転換）", desc:"角引きからの飛車先2枚攻めには▲8八飛！数を数えれば怖くない。", vid:"w4"},
+  {name:"攻め上がり実践（位取り）", desc:"位を取り、位を銀で確保し、進出口をこじ開ける攻めの組み立て。", vid:"w5"},
+  {name:"原始棒銀・応用変化", desc:"速攻や強引な銀出は「数え」で咎める。銀ばさみの感覚をマスター。", vid:"w6"},
+  {name:"右四間飛車・応用変化", desc:"取り込みの歩は銀で払う。囲いが新型でも受けの原則は不変。", vid:"w7"},
+  {name:"初段検定２", desc:"道場２の総仕上げ。藤井猛流の考え方が身についたか腕試し！", vid:"w1"}
+];
+const PROBLEMS = [];
+/* ============ 単元0：攻めの基本理論 ============ */
+PROBLEMS.push(
+{u:0,q:"藤井猛九段の教え「攻め駒は最低3枚、理想は4枚」。今は飛車と角の2枚だけ。3枚目を作る一手は？",
+ pos:{s:"99香 89桂 78銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 62銀 52金 32玉 41金 31銀 21桂 11香 22角 82飛 93歩 84歩 73歩 63歩 53歩 43歩 34歩 23歩 13歩",last:"84"},
+ c:["▲6七銀","▲4六歩","▲1六歩","▲9六歩"],a:0,
+ e:"▲6七銀で左の銀が攻めに参加、これで3枚。守りの銀（3八）と攻めの銀（6七）の役割分担が藤井猛流の基本です。この銀はここから5六や7六へ、攻めの最前線に向かいます。",vid:"w1"},
+{u:0,q:"角交換が済んだ。4枚目の攻め駒を作る一手は？",
+ pos:{s:"99香 89桂 67銀 68飛 58金 49金 38銀 28玉 29桂 19香 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 62銀 52金 32玉 41金 22銀 21桂 11香 82飛 93歩 84歩 73歩 63歩 53歩 43歩 34歩 23歩 13歩",
+      sh:"角",gh:"角",last:"22"},
+ c:["▲7七桂","▲3六歩","▲5六歩","▲1六歩"],a:0,
+ e:"▲7七桂で攻め駒4枚が完成！桂は次に▲6五桂と跳ねて、銀・飛車と一緒に6筋へ殺到します。「桂馬を攻めに使えると攻撃力が倍増する」——藤井猛九段の攻めの理論の核心です。",vid:"w1"},
+{u:0,q:"持ち駒の歩も立派な攻め駒。6筋で後手陣を乱す一手は？",
+ pos:{s:"99香 89桂 78銀 64飛 58金 49金 38銀 28玉 29桂 19香 97歩 87歩 76歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 62銀 61金 32玉 41金 22銀 21桂 11香 82飛 93歩 84歩 73歩 53歩 43歩 34歩 23歩 13歩",
+      sh:"角 歩 歩",gh:"角 歩",last:"61"},
+ c:["▲6三歩","▲7五歩","▲9六歩","▲5六歩"],a:0,
+ e:"▲6三歩の「叩き」！△同銀と取れば▲同飛成で銀がタダ、銀が逃げれば▲6二歩成で「と金」ができます。歩1枚が銀や金以上の働きをする——「歩も大事な攻め駒」が藤井猛九段の教えです。",vid:"w1"},
+{u:0,q:"飛・銀・桂・歩、攻め駒4枚の理想形が完成！総攻撃の合図は？",
+ pos:{s:"99香 77桂 56銀 68飛 58金 49金 38銀 28玉 29桂 19香 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 62銀 52金 32玉 41金 22銀 21桂 11香 82飛 93歩 84歩 73歩 64歩 53歩 43歩 34歩 23歩 13歩",
+      sh:"角",gh:"角",last:"64"},
+ c:["▲6五歩","▲4五銀","▲9六歩","▲1六歩"],a:0,
+ e:"▲6五歩で開戦！△同歩なら▲同桂と跳ね、桂が5三と7三の両方を狙います。さらに▲同銀の追撃も。「4枚の攻めは受からない」——これが藤井猛九段の攻めの結論です。",vid:"w1"}
+);
+/* ============ 単元1：対右銀急戦 ============ */
+PROBLEMS.push(
+{u:1,q:"後手は新型「エルモ囲い」＋銀が5三へ。急戦は確実。何より先にやるべきことは？",
+ pos:{s:"99香 89桂 67銀 68飛 69金 49金 38玉 39銀 29桂 19香 77角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 53銀 51金 32玉 42銀 31金 21桂 11香 22角 82飛 93歩 84歩 74歩 63歩 54歩 43歩 34歩 23歩 13歩",last:"53"},
+ c:["▲2八玉","▲6五歩","▲5六銀","▲9六歩"],a:0,
+ e:"急戦模様と見たら、何より先に美濃囲いの完成（▲2八玉〜▲3八銀）。「戦いが始まる前に玉を安全に」は、どんな新型が来ても変わらない大原則。エルモは横に強い囲いなので、こちらも堅さで負けないこと。",vid:"w2"},
+{u:1,q:"右銀が6四に構え、△7五歩と仕掛けてきた（右銀急戦）。鉄則の一手は？",
+ pos:{s:"99香 89桂 67銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 64銀 51金 32玉 42銀 31金 21桂 11香 22角 82飛 93歩 84歩 75歩 63歩 54歩 43歩 34歩 23歩 13歩",last:"75"},
+ c:["▲7八飛","▲同歩","▲6五歩","▲8八飛"],a:0,
+ e:"舟囲いだろうがエルモだろうが、鉄則は「攻められた筋に飛車を回れ」。▲7八飛と回れば△7六歩には▲同銀で万全。藤井猛九段いわく、右銀急戦は「怖くない」！",vid:"w2"},
+{u:1,q:"△7六歩と取り込んできた。反撃の一手は？",
+ pos:{s:"99香 89桂 67銀 78飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 64銀 51金 32玉 42銀 31金 21桂 11香 22角 82飛 93歩 84歩 76歩 63歩 54歩 43歩 34歩 23歩 13歩",
+      gh:"歩",last:"76"},
+ c:["▲同銀","▲8八角","▲6八角","▲5六銀"],a:0,
+ e:"▲同銀と堂々取り返します。7八の飛車と6七から出た銀の連携で、7筋の戦いは数でこちらが上。受けの銀が攻めの銀に変わる瞬間です。",vid:"w2"}
+);
+/* ============ 単元2：対エルモ囲い急戦 ============ */
+PROBLEMS.push(
+{u:2,q:"金3一・銀4二——ソフト生まれの「エルモ囲い」だ。桂も跳んで△6五歩狙い。仕掛けを封じる一手は？",
+ pos:{s:"99香 89桂 67銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 73桂 62銀 51金 32玉 42銀 31金 21桂 11香 22角 82飛 93歩 84歩 74歩 64歩 53歩 43歩 34歩 23歩 13歩",last:"73"},
+ c:["▲5六銀","▲7八飛","▲6五歩","▲4六歩"],a:0,
+ e:"▲5六銀で6五の地点を強化すれば、仕掛けは数不足で不成立。エルモ囲いは新型でも、攻めてくる筋と数は同じ——「仕掛けの地点の数を数える」で全部対応できます。",vid:"w3"},
+{u:2,q:"構わず△6五歩と強行してきた！5六銀型を信じて、まずは？",
+ pos:{s:"99香 89桂 56銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 73桂 62銀 51金 32玉 42銀 31金 21桂 11香 22角 82飛 93歩 84歩 74歩 65歩 53歩 43歩 34歩 23歩 13歩",last:"65"},
+ c:["▲同歩","▲同銀","▲4五銀","▲6九飛"],a:0,
+ e:"▲同歩で受けて立ちます。エルモ＋早仕掛けの組み合わせでも、5六の銀が6五をにらんでいる限り後手の攻めは続きません。",vid:"w3"},
+{u:2,q:"△同桂と跳ねてきた。5六の銀の出番！",
+ pos:{s:"99香 89桂 56銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 62銀 51金 32玉 42銀 31金 21桂 11香 22角 82飛 93歩 84歩 74歩 65桂 53歩 43歩 34歩 23歩 13歩",
+      sh:"歩",gh:"歩",last:"65"},
+ c:["▲同銀","▲7八飛","▲4六歩","▲6九飛"],a:0,
+ e:"▲同銀と食いちぎって桂得！仕掛けた側の桂がタダで消え、エルモ急戦は空振り。5六に置いた一枚の銀が、最新型の急戦を完封したのです。",vid:"w3"}
+);
+/* ============ 単元3：対引き角 ============ */
+PROBLEMS.push(
+{u:3,q:"後手は角を3一に引く「引き角戦法」。角と飛車の二枚で8六突破を狙っている！対抗の一手は？",
+ pos:{s:"99香 89桂 67銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 71銀 61金 41玉 32銀 31角 21桂 11香 82飛 93歩 85歩 73歩 63歩 54歩 43歩 34歩 23歩 13歩",last:"31"},
+ c:["▲8八飛","▲6五歩","▲9六歩","▲6八金"],a:0,
+ e:"敵の狙いは8六の突破（飛＋角の2枚攻め）。▲8八飛と向かい飛車に転換すれば受けの数が足りて、ぴったりの対抗形になります。藤井猛九段直伝、「引き角には向かい飛車」！",vid:"w4"},
+{u:3,q:"予定通り△8六歩と来た。落ち着いて数を数えれば……？",
+ pos:{s:"99香 89桂 67銀 88飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 71銀 61金 41玉 32銀 31角 21桂 11香 82飛 93歩 86歩 73歩 63歩 54歩 43歩 34歩 23歩 13歩",last:"86"},
+ c:["▲同歩","▲同角","▲9八飛","▲6八金"],a:0,
+ e:"▲同歩でOK。8六の地点は角（7七）と飛車（8八）の2枚が守り、攻めも2枚——数が同じなら最後に取り返す受け側の勝ちです。引き角の狙いを正面から受け止めました。",vid:"w4"},
+{u:3,q:"攻めを受け切った！今度はこちらの番。8筋から逆襲する一手は？",
+ pos:{s:"99香 89桂 67銀 88飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 86歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 71銀 61金 41玉 32銀 31角 21桂 11香 82飛 93歩 73歩 64歩 54歩 43歩 34歩 23歩 13歩",
+      sh:"歩",last:"64"},
+ c:["▲8五歩","▲6五歩","▲9六歩","▲5六銀"],a:0,
+ e:"▲8五歩とグイグイ押します。△同飛は▲同飛で飛車交換——堅い美濃のこちらが大歓迎。飛車が逃げれば▲8四歩〜▲8三歩成と、歩が「と金」に化けて襲いかかります。",vid:"w4"}
+);
+/* ============ 単元4：攻め上がり実践 ============ */
+PROBLEMS.push(
+{u:4,q:"後手の駒組みはゆっくり。6筋の「位（くらい）」を取る一手は？",
+ pos:{s:"99香 89桂 67銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 62銀 52金 32玉 41金 31銀 21桂 11香 22角 82飛 93歩 84歩 73歩 63歩 53歩 43歩 34歩 23歩 13歩",last:"52"},
+ c:["▲6五歩","▲5六歩","▲4六歩","▲9六歩"],a:0,
+ e:"相手が付き合ってこないなら▲6五歩と位を取ります。「位は力なり」——6五の歩があるだけで後手の銀や桂は前に出にくくなり、こちらの銀には6六という進出口ができます。攻め上がりの第一歩！",vid:"w5"},
+{u:4,q:"位を取ったら次の格言は「位の確保」。どう指す？",
+ pos:{s:"99香 89桂 67銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 65歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 62銀 52金 32玉 41金 31銀 21桂 11香 22角 82飛 93歩 84歩 74歩 63歩 53歩 43歩 34歩 23歩 13歩",last:"74"},
+ c:["▲6六銀","▲5六銀","▲7八飛","▲9六歩"],a:0,
+ e:"▲6六銀と位の下に銀を据えれば、6五の位はビクともしません。この銀はさらに7五や5五への進出をうかがう「攻めの司令塔」。位取り＋銀の確保は、攻め上がりの黄金パターンです。",vid:"w5"},
+{u:4,q:"銀の進出口をこじ開ける！攻め上がりの継続手は？",
+ pos:{s:"99香 89桂 66銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 65歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 62銀 52金 32玉 41金 31銀 21桂 11香 22角 82飛 93歩 84歩 74歩 63歩 53歩 43歩 34歩 23歩 13歩",last:"74"},
+ c:["▲7五歩","▲5五銀","▲4六歩","▲3六歩"],a:0,
+ e:"▲7五歩△同歩▲同銀！と、銀がスルスル7五へ進出します。▲5五銀は△同角でタダなので注意——角のにらみは常に確認！位と銀で盤面を制圧してから、じっくり6筋をさばくのが理想です。",vid:"w5"}
+);
+/* ============ 単元5：原始棒銀・応用変化 ============ */
+PROBLEMS.push(
+{u:5,q:"囲いの途中にいきなり△8六歩！？あわてず対応するなら？",
+ pos:{s:"99香 89桂 79銀 69金 48玉 49金 39銀 29桂 19香 88角 68飛 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 84銀 61金 51玉 41金 31銀 21桂 11香 22角 82飛 93歩 86歩 73歩 63歩 53歩 43歩 34歩 23歩 13歩",last:"86"},
+ c:["▲同歩","▲7七角","▲8八飛","▲5八金左"],a:0,
+ e:"▲同歩と取って何の問題もありません。8四の銀が飛車の道をふさいでいて△同飛と取り返せないのです（銀と飛車のタテの併走が原始棒銀の弱点）。ここに気づくと棒銀退治がグッと楽になります。",vid:"w6"},
+{u:5,q:"強引に△8五銀と出てきた。この銀、実は……？",
+ pos:{s:"99香 89桂 78銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 96歩 86歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 85銀 61金 51玉 41金 31銀 21桂 11香 22角 82飛 93歩 73歩 63歩 53歩 43歩 34歩 23歩 13歩",
+      sh:"歩",last:"85"},
+ c:["▲同歩","▲8八角","▲7八飛","▲6五歩"],a:0,
+ e:"▲同歩で銀がタダ！△同飛と歩を取り返されても「銀と歩の交換」で大戦果です。8六に歩がいる限り銀は8五に出られない——この「銀ばさみ」の感覚が原始棒銀を完封します。",vid:"w6"}
+);
+/* ============ 単元6：右四間飛車・応用変化 ============ */
+PROBLEMS.push(
+{u:6,q:"△6五歩を手抜いたら△6六歩と取り込まれた！放置は危険。どうする？",
+ pos:{s:"99香 89桂 67銀 68飛 58金 49金 38銀 28玉 29桂 19香 88角 97歩 87歩 76歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 73桂 63銀 62飛 52金 32玉 41金 31銀 21桂 11香 22角 93歩 83歩 74歩 66歩 53歩 43歩 34歩 23歩 13歩",
+      gh:"歩",last:"66"},
+ c:["▲同銀","▲6九飛","▲7七角","▲5六歩"],a:0,
+ e:"▲同銀と根こそぎ払います。放っておくと△6七歩成と銀を取られながら「と金」を作られて受けが崩壊。「拠点の歩は銀で払う」——6七銀型はこのためにあるのです。",vid:"w7"},
+{u:6,q:"右四間＋エルモ囲いの最新型！△6五歩の仕掛け。対応は変わる？",
+ pos:{s:"99香 89桂 67銀 68飛 58金 49金 38銀 28玉 29桂 19香 88角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 73桂 63銀 62飛 51金 32玉 42銀 31金 21桂 11香 22角 93歩 83歩 74歩 65歩 53歩 43歩 34歩 23歩 13歩",last:"65"},
+ c:["▲同歩","▲7七角","▲6九飛","▲4六歩"],a:0,
+ e:"囲いがエルモに変わっても対応は全く同じ——▲同歩！△8八角成には▲同飛、△同桂には▲6六銀。「流行形に惑わされず、地点の数を数える」。これができればどんな新型も怖くありません。",vid:"w7"}
+);
+/* ============ 単元7：初段検定２ ============ */
+PROBLEMS.push(
+{u:7,q:"【検定①】攻め駒4枚の理想形が完成。藤井猛流の総攻撃、開始の一手は？",
+ pos:{s:"99香 77桂 56銀 68飛 58金 49金 38銀 28玉 29桂 19香 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 62銀 51金 32玉 42銀 31金 21桂 11香 82飛 93歩 84歩 73歩 64歩 53歩 43歩 34歩 23歩 13歩",
+      sh:"角",gh:"角",last:"64"},
+ c:["▲6五歩","▲4五銀","▲9六歩","▲1六歩"],a:0,
+ e:"▲6五歩で総攻撃！△同歩なら▲同桂、続けて▲同銀。飛・銀・桂・歩の4枚攻めは受かりません。攻め駒を増やしてから開戦する——理論通りの快勝コースです。",vid:"w1"},
+{u:7,q:"【検定②】角を引いて8六を二枚で狙う「引き角」。対抗の一手は？",
+ pos:{s:"99香 89桂 67銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 71銀 52金 41玉 32銀 31角 21桂 11香 82飛 93歩 85歩 73歩 63歩 54歩 43歩 34歩 23歩 13歩",last:"31"},
+ c:["▲8八飛","▲6五歩","▲9六歩","▲6八金"],a:0,
+ e:"▲8八飛の向かい飛車転換でしたね。8六の受けの数が足りて、引き角の狙いは空振り。「攻められた地点に数を足す」が体に入っていれば初段の受けです。",vid:"w4"},
+{u:7,q:"【検定③】エルモ＋右銀急戦の△7五歩！鉄則は？",
+ pos:{s:"99香 89桂 67銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 97歩 87歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 64銀 52金 32玉 42銀 31金 21桂 11香 22角 82飛 93歩 84歩 75歩 63歩 54歩 43歩 34歩 23歩 13歩",last:"75"},
+ c:["▲7八飛","▲同歩","▲6五歩","▲8八飛"],a:0,
+ e:"「攻められた筋に飛車を回れ」——▲7八飛！△7六歩には▲同銀。新型囲いに動じず原則で受け切れれば、右銀急戦は本当に「怖くない」です。",vid:"w2"},
+{u:7,q:"【検定・最終】△8五銀！この一手で棒銀は終わり。とどめは？",
+ pos:{s:"99香 89桂 78銀 68飛 58金 49金 38銀 28玉 29桂 19香 77角 96歩 86歩 76歩 66歩 57歩 47歩 37歩 27歩 17歩",
+      g:"91香 81桂 85銀 61金 42玉 41金 31銀 21桂 11香 22角 82飛 93歩 73歩 63歩 53歩 43歩 34歩 23歩 13歩",
+      sh:"歩",last:"85"},
+ c:["▲同歩","▲8八角","▲7八飛","▲6五歩"],a:0,
+ e:"▲同歩で銀を捕獲！道場２・全課程修了です。藤井猛九段の「数える将棋」と藤倉先生の「原則の将棋」、両方が身についたあなたはもう初段の力。実戦で暴れてきてください！",vid:"w6"}
+);
+/* ================== エンジン ================== */
+const KEY="shogi-dojo2-v1";
+let store=JSON.parse(localStorage.getItem(KEY)||"{}");
+store.mastered=store.mastered||[];
+let mastered=new Set(store.mastered);
+function save(){store.mastered=[...mastered];localStorage.setItem(KEY,JSON.stringify(store));}
+const RANKS=[{p:0,n:"2級"},{p:50,n:"1級"},{p:90,n:"初段"}];
+function ratio(){return PROBLEMS.length?Math.round(mastered.size/PROBLEMS.length*100):0;}
+function rankOf(r){let n=RANKS[0].n;for(const k of RANKS){if(r>=k.p)n=k.n;}return n;}
+const app=document.getElementById("app");
+
+function parseSide(str,gote){
+  const out=[];
+  if(!str)return out;
+  for(const tok of str.trim().split(/\s+/)){
+    out.push({f:+tok[0],r:+tok[1],p:tok.slice(2),g:gote});
+  }
+  return out;
+}
+function boardHTML(pos){
+  const cells={};
+  for(const pc of [...parseSide(pos.s,false),...parseSide(pos.g,true)])cells[""+pc.f+pc.r]=pc;
+  let h='<div class="boardzone">';
+  h+='<div class="hands"><div class="t">☖ 後手の持ち駒</div><div class="p">'+(pos.gh||"なし")+'</div></div>';
+  h+='<div><table class="board"><tr>';
+  for(let f=9;f>=1;f--)h+='<td style="height:18px;border:none;background:var(--bg)" class="coords">'+f+'</td>';
+  h+='<td style="border:none;background:var(--bg)"></td></tr>';
+  const kan="一二三四五六七八九";
+  for(let r=1;r<=9;r++){
+    h+="<tr>";
+    for(let f=9;f>=1;f--){
+      const pc=cells[""+f+r];
+      const hl=pos.last===(""+f+r)?' class="hl"':'';
+      h+="<td"+hl+">"+(pc?(pc.g?'<span class="g">'+pc.p+"</span>":pc.p):"")+"</td>";
+    }
+    h+='<td style="border:none;background:var(--bg);width:18px" class="coords">'+kan[r-1]+"</td></tr>";
+  }
+  h+="</table></div>";
+  h+='<div class="hands"><div class="t">☗ 先手（あなた）の持ち駒</div><div class="p">'+(pos.sh||"なし")+'</div></div>';
+  h+="</div>";
+  return h;
+}
+
+function home(){
+  const r=ratio(),rk=rankOf(r);
+  let h='<div class="card"><div class="meter-head"><h2>初段への道</h2><span class="rank-now">現在のレベル<b>'+rk+'</b></span></div>';
+  h+='<div class="meter"><div class="fill" style="width:'+r+'%"></div><div class="ms" style="left:50%"></div><div class="ms" style="left:90%"></div><div class="pin" style="left:'+r+'%"></div></div>';
+  h+='<div class="meter-labels"><span class="hit">2級</span><span'+(r>=50?' class="hit"':'')+' style="position:relative;left:4%">1級（50%）</span><span'+(r>=90?' class="hit"':'')+'>初段（90%）</span></div>';
+  h+='<div class="stats"><div class="stat"><div class="l">習得した問題</div><div class="v">'+mastered.size+' / '+PROBLEMS.length+'</div></div><div class="stat"><div class="l">習得度</div><div class="v">'+r+'%</div></div><div class="stat"><div class="l">残り（初段まで）</div><div class="v">'+Math.max(0,Math.ceil(PROBLEMS.length*0.9)-mastered.size)+'問</div></div></div>'+(mastered.size>0&&mastered.size<PROBLEMS.length?'<div style="text-align:center;margin-top:16px"><button class="nextbtn" style="display:inline-block;background:#534ab7" onclick="startReview()">未習得の問題だけ復習（'+(PROBLEMS.length-mastered.size)+'問）</button></div>':'')+'</div>';
+  h+='<div class="units">';
+  UNITS.forEach((u,i)=>{
+    const ps=PROBLEMS.filter(p=>p.u===i);
+    const done=ps.filter((p)=>mastered.has(pid(p))).length;
+    h+='<div class="unit'+(done===ps.length&&ps.length?' complete':'')+'" onclick="startUnit('+i+')"><h3>'+u.name+'</h3><div class="desc">'+u.desc+'</div><div class="bar"><i style="width:'+(ps.length?Math.round(done/ps.length*100):0)+'%"></i></div><div class="meta"><span class="done">習得 '+done+' / '+ps.length+'</span><span>クリックして開始 ▶</span></div></div>';
+  });
+  h+='</div><div style="text-align:center;margin-top:18px"><button class="ghost" onclick="resetAll()">進捗をリセット</button></div>';
+  app.innerHTML=h;
+}
+function pid(p){return p.u+":"+p.q.slice(0,14);}
+let cur={list:[],i:0,unit:0,wrong:false,gotRight:0};
+function startUnit(u){
+  const ps=PROBLEMS.filter(p=>p.u===u);
+  ps.sort((a,b)=>(mastered.has(pid(a))?1:0)-(mastered.has(pid(b))?1:0));
+  cur={list:ps,i:0,unit:u,wrong:false,gotRight:0};
+  showProblem();
+}
+function startReview(){
+  const ps=PROBLEMS.filter(p=>!mastered.has(pid(p)));
+  if(!ps.length){alert("全問習得済みです！おめでとうございます！");return;}
+  cur={list:ps,i:0,unit:ps[0].u,wrong:false,gotRight:0,review:true};
+  showProblem();
+}
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function showProblem(){
+  const p=cur.list[cur.i];cur.wrong=false;
+  const order=shuffle(p.c.map((t,idx)=>({t,idx})));
+  let h='<div class="card"><div class="qhead"><span class="u">'+UNITS[p.u].name+'</span><span class="n">第 '+(cur.i+1)+' 問 / '+cur.list.length+'</span><button class="ghost" onclick="home()">← ホームへ</button></div>';
+  h+='<div class="question">'+p.q+'</div>';
+  if(p.pos.last)h+='<div class="lastmove">直前の相手の手にご注目（オレンジのマス）</div>';
+  h+=boardHTML(p.pos);
+  h+='<div class="choices">'+order.map(o=>'<button onclick="answer(this,'+o.idx+')">'+o.t+'</button>').join("")+'</div>';
+  h+='<div class="feedback" id="fb"></div><button class="nextbtn" id="next" onclick="nextProblem()">次の問題へ</button></div>';
+  app.innerHTML=h;
+}
+function answer(btn,idx){
+  const p=cur.list[cur.i];
+  const fb=document.getElementById("fb");
+  if(idx===p.a){
+    document.querySelectorAll(".choices button").forEach(b=>b.disabled=true);
+    btn.classList.add("ok");
+    const first=!cur.wrong;
+    let head=first?"正解！ お見事！":"正解（復習しておこう）";
+    if(first&&!mastered.has(pid(p))){
+      const before=ratio();
+      mastered.add(pid(p));save();
+      cur.gotRight++;
+      checkLevelUp(before);
+      head="正解！ 習得しました ✓";
+    }
+    const v=VIDEOS[p.vid];
+    fb.className="feedback ok";
+    fb.innerHTML='<div class="head">'+head+'</div>'+p.e+'<div class="vid">▶ 講座で復習：<a href="'+v.u+'" target="_blank">'+v.t+'</a></div>';
+    document.getElementById("next").style.display="block";
+  }else{
+    cur.wrong=true;
+    btn.classList.add("ng");btn.disabled=true;
+    fb.className="feedback ng";
+    fb.innerHTML='<div class="head">残念、もう一度！</div>ヒント：'+UNITS[p.u].desc;
+  }
+}
+function nextProblem(){
+  if(cur.i+1<cur.list.length){cur.i++;showProblem();}
+  else{
+    const ps=cur.list,done=ps.filter(p=>mastered.has(pid(p))).length;
+    const title=cur.review?"弱点復習":"「"+UNITS[cur.unit].name+"」";
+    let h='<div class="card result"><h2>'+title+'終了！</h2><div class="big">'+done+' / '+ps.length+' 問 習得</div>';
+    h+='<p>'+(done===ps.length?"全問習得！お見事です。":"間違えた問題はもう一度挑戦すると「習得」になります。")+'</p>';
+    if(cur.review){
+      if(mastered.size<PROBLEMS.length)h+='<button class="nextbtn" style="display:inline-block" onclick="startReview()">残りをもう一度復習</button> ';
+    }else{
+      h+='<button class="nextbtn" style="display:inline-block" onclick="startUnit('+cur.unit+')">もう一度この単元</button> ';
+    }
+    h+='<button class="nextbtn" style="display:inline-block;background:#534ab7" onclick="home()">ホームへ戻る</button></div>';
+    app.innerHTML=h;
+  }
+}
+function checkLevelUp(before){
+  const after=ratio();
+  for(const k of RANKS.slice(1)){
+    if(before<k.p&&after>=k.p){
+      document.getElementById("lvRank").textContent=k.n+"到達！";
+      document.getElementById("lvMsg").textContent=k.n==="初段"?"おめでとうございます！道場の全課程をほぼ制覇。実戦でも初段の力が付いているはず！":"いいペース！この調子で初段を目指しましょう。";
+      document.getElementById("overlay").classList.add("show");
+    }
+  }
+}
+function closeLv(){document.getElementById("overlay").classList.remove("show");}
+function resetAll(){if(confirm("進捗をすべてリセットします。よろしいですか？")){mastered=new Set();save();home();}}
+home();
+</script>
+</body>
+</html>
