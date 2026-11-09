@@ -1,0 +1,1520 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>居飛車道場</title>
+<style>
+:root{
+  --bg:#f6f3ee; --card:#ffffff; --ink:#2a2522; --sub:#7a6f66; --line:#e6dfd6;
+  --accent:#b5452f; --accent2:#2f6f62; --ok:#2f7d4f; --ng:#c23b2a; --warn:#c98a1b;
+  --board:#e9c98f; --board-line:#5b4426; --hl:rgba(47,125,79,.35); --last:rgba(201,138,27,.38); --sel:rgba(181,69,47,.45);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1040px;margin:0 auto;padding:16px}
+header{display:flex;white-space:nowrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+header h1{font-size:22px;margin:0;letter-spacing:.06em}
+header h1 small{display:block;white-space:normal;font-size:12px;color:var(--sub);font-weight:normal;letter-spacing:0;margin-top:2px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 16px;border-radius:10px;font-size:15px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:bold}
+.btn.green{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.sm{padding:6px 10px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 10px}
+.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.meter{height:14px;background:#efe8de;border-radius:7px;overflow:hidden;position:relative}
+.meter>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),#4aa38d);border-radius:7px}
+.ranks{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-top:4px}
+.big{font-size:28px;font-weight:bold}
+.muted{color:var(--sub);font-size:13px}
+.today-list{list-style:none;margin:0;padding:0}
+.today-list li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.today-list li:last-child{border-bottom:none}
+.tag{font-size:11px;padding:2px 7px;border-radius:6px;white-space:nowrap;font-weight:bold}
+.tag.new{background:#e4efe9;color:var(--accent2)}
+.tag.rev{background:#f3e9d7;color:#8a5a12}
+.tag.weak{background:#f6dfda;color:var(--ng)}
+.done-mark{margin-left:auto;font-size:18px}
+.lvrow{display:grid;grid-template-columns:150px 1fr 54px;align-items:center;gap:10px;padding:6px 0;font-size:14px;cursor:pointer}
+.lvrow .meter{height:10px}
+.lvrow.locked{opacity:.45}
+.catrow{display:grid;grid-template-columns:90px 1fr 48px;gap:10px;align-items:center;font-size:13px;padding:4px 0}
+.catrow .meter>i{background:linear-gradient(90deg,#c98a1b,#e0b55a)}
+.catrow.weakest .meter>i{background:linear-gradient(90deg,var(--ng),#e07a6a)}
+.days{display:flex;gap:6px;margin-top:6px}
+.days span{width:30px;height:30px;border-radius:7px;background:#efe8de;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--sub)}
+.days span.on{background:var(--accent2);color:#fff}
+.drill-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.ditem{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fffdf9;cursor:pointer;font-size:13px;display:flex;gap:8px;align-items:flex-start}
+.ditem:hover{border-color:var(--accent)}
+.ditem .st{font-size:15px;line-height:1.2}
+.ditem b{display:block;font-size:13.5px;margin-bottom:2px}
+/* ===== 対局画面 ===== */
+#play{display:none}
+.playgrid{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+@media (max-width:860px){.playgrid{grid-template-columns:1fr}}
+.boardbox{display:flex;flex-direction:column;align-items:center;gap:6px;--bw:min(92vw,468px)}
+.hand{width:var(--bw);min-height:44px;display:flex;align-items:center;gap:4px;padding:4px 8px;background:#efe3cc;border-radius:8px;border:1px solid #d8c6a3}
+.hand .who{font-size:13px;color:var(--sub);margin-right:6px;white-space:nowrap}
+.hp{position:relative;width:calc(var(--bw)/10.5);height:calc(var(--bw)/10.5);display:flex;align-items:center;justify-content:center;font-size:calc(var(--bw)/17);border-radius:6px;cursor:pointer;font-weight:bold}
+.hp.sel{background:var(--sel)}
+.hp sub{position:absolute;right:1px;bottom:0;font-size:calc(var(--bw)/34);font-weight:normal;color:var(--sub)}
+.hand .rest{font-size:12px;color:var(--sub)}
+.bframe{position:relative;width:var(--bw);padding:calc(var(--bw)/26) calc(var(--bw)/26) 0 0}
+.fcoord{position:absolute;top:0;left:0;right:calc(var(--bw)/26);height:calc(var(--bw)/26);display:grid;grid-template-columns:repeat(9,1fr);font-size:calc(var(--bw)/40);color:var(--sub);text-align:center;align-items:center}
+.rcoord{position:absolute;top:calc(var(--bw)/26);right:0;bottom:0;width:calc(var(--bw)/26);display:grid;grid-template-rows:repeat(9,1fr);font-size:calc(var(--bw)/40);color:var(--sub);align-items:center;justify-items:center}
+.board{display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(9,1fr);aspect-ratio:1/1;width:100%;background:var(--board-line);gap:1px;border:2px solid var(--board-line);border-radius:2px}
+.cell{background:var(--board);position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;min-width:0;min-height:0;overflow:hidden}
+.cell.last{background:linear-gradient(var(--last),var(--last)),var(--board)}
+.cell.sel{background:linear-gradient(var(--sel),var(--sel)),var(--board)}
+.cell.dest::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:var(--hl)}
+.cell.hint{box-shadow:inset 0 0 0 3px var(--warn)}
+.pc{font-size:calc(var(--bw)/15.5);font-weight:bold;line-height:1;color:#1d1611;display:inline-block}
+.pc.opp{transform:rotate(180deg)}
+.pc.prom{color:#b0261a}
+.pc.two{font-size:calc(var(--bw)/24);writing-mode:vertical-rl;letter-spacing:-.1em}
+.side{min-width:0}
+.qhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.qhead h2{margin:0;font-size:17px}
+.qdots{display:flex;gap:4px;flex-wrap:wrap;margin:10px 0}
+.qdots i{width:14px;height:14px;border-radius:50%;background:#e6dfd6;display:block}
+.qdots i.cur{background:var(--warn)}
+.qdots i.ok{background:var(--ok)}
+.qdots i.ng{background:var(--ng)}
+.prompt{font-size:16px;font-weight:bold;padding:10px 12px;border-radius:10px;background:#f4efe7;margin:8px 0}
+.prompt.ok{background:#e3f1e8;color:var(--ok)}
+.prompt.ng{background:#f8e3df;color:var(--ng)}
+.comment{font-size:14.5px;line-height:1.7;min-height:52px;padding:4px 2px}
+.kifu{font-size:12.5px;color:var(--sub);line-height:1.8;max-height:120px;overflow:auto;border-top:1px dashed var(--line);margin-top:8px;padding-top:6px}
+.kifu b{color:var(--ink)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:10}
+.modal .box{background:#fff;border-radius:14px;padding:20px;min-width:240px;text-align:center}
+.modal .box .btn{margin:6px;min-width:90px;font-size:18px}
+.result{text-align:center;padding:10px 0}
+.result .big{font-size:36px}
+.goal{font-size:13px;color:var(--sub);margin:4px 0 0}
+.flipnote{font-size:12px;color:var(--sub)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tabs button{border:1px solid var(--line);background:#fff;border-radius:16px;padding:5px 12px;font-size:13px}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+footer{font-size:12px;color:var(--sub);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>居飛車道場<small>四間飛車党のための居飛車ドリル ― 目標：将棋ウォーズ初段</small></h1>
+  <button class="btn sm" id="homeBtn" style="display:none" onclick="goHome()">← ホーム</button>
+</header>
+
+<div id="home">
+  <div class="grid2">
+    <div class="card">
+      <h2>今日のドリル <span class="muted" id="todayDate"></span></h2>
+      <div class="muted" id="todayNote"></div>
+      <ul class="today-list" id="todayList"></ul>
+      <div class="actions"><button class="btn primary" id="startToday" onclick="startToday()">今日のドリルを始める</button>
+      <button class="btn" onclick="startWeak()">弱点だけ特訓</button></div>
+    </div>
+    <div class="card">
+      <h2>初段への道</h2>
+      <div><span class="big" id="rankNow">-</span> <span class="muted" id="rankNext"></span></div>
+      <div class="meter" style="margin-top:10px"><i id="rankBar" style="width:0"></i></div>
+      <div class="ranks"><span>10級</span><span>5級</span><span>3級</span><span>1級</span><span>初段</span></div>
+      <div class="muted" style="margin-top:10px" id="statLine"></div>
+      <div class="days" id="days"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>コース別の進み具合</h2>
+      <div id="levels"></div>
+    </div>
+    <div class="card">
+      <h2>弱点チェック（分野別の正解率）</h2>
+      <div id="cats"></div>
+      <div class="muted" style="margin-top:8px" id="weakList"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>全ドリル一覧（自由練習）</h2>
+    <div class="tabs" id="lvTabs"></div>
+    <div class="drill-list" id="drillList"></div>
+  </div>
+  <footer>進捗はこのブラウザに自動保存されます。<button class="btn sm" onclick="resetAll()">進捗をリセット</button></footer>
+</div>
+
+<div id="play">
+  <div class="playgrid">
+    <div class="boardbox">
+      <div class="hand" id="handTop"></div>
+      <div class="bframe">
+        <div class="fcoord" id="fcoord"></div>
+        <div class="rcoord" id="rcoord"></div>
+        <div class="board" id="board"></div>
+      </div>
+      <div class="hand" id="handBottom"></div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <div class="qhead"><span class="tag" id="pTag"></span><h2 id="pTitle"></h2></div>
+        <p class="goal" id="pDesc"></p>
+        <div class="flipnote" id="pSide"></div>
+        <div class="qdots" id="qdots"></div>
+        <div class="prompt" id="prompt"></div>
+        <div class="comment" id="comment"></div>
+        <div class="actions" id="actions"></div>
+        <div class="kifu" id="kifu"></div>
+      </div>
+      <div class="muted" id="queueInfo" style="text-align:center"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="modal" id="promoModal"><div class="box"><div style="margin-bottom:8px">成りますか？</div>
+<button class="btn primary" id="promoYes">成る</button><button class="btn" id="promoNo">成らない</button></div></div>
+
+<script>// 居飛車道場 将棋ルールエンジン（合法手生成・二歩・打ち歩詰め・行き所のない駒・王手放置を判定）
+(function (root) {
+  'use strict';
+  // 盤: index = (rank-1)*9 + (file-1)  file 1..9 (右→左), rank 1..9 (上→下, 先手から見て)
+  // 駒: 先手=大文字, 後手=小文字, 成駒は先頭に '+'
+  const sq = (f, r) => (r - 1) * 9 + (f - 1);
+  const fileOf = i => (i % 9) + 1;
+  const rankOf = i => Math.floor(i / 9) + 1;
+  const isB = p => p && p.replace('+', '') === p.replace('+', '').toUpperCase();
+  const colorOf = p => (p ? (isB(p) ? 0 : 1) : -1);
+  const baseType = p => p.replace('+', '').toUpperCase(); // 'P'..'K'
+  const isProm = p => p[0] === '+';
+  const PROMOTABLE = { P: 1, L: 1, N: 1, S: 1, B: 1, R: 1 };
+  const KANJI = { P: '歩', L: '香', N: '桂', S: '銀', G: '金', B: '角', R: '飛', K: '玉', '+P': 'と', '+L': '杏', '+N': '圭', '+S': '全', '+B': '馬', '+R': '龍' };
+  const KANJI_KIF = { P: '歩', L: '香', N: '桂', S: '銀', G: '金', B: '角', R: '飛', K: '玉', '+P': 'と', '+L': '成香', '+N': '成桂', '+S': '成銀', '+B': '馬', '+R': '龍' };
+  const HAND_ORDER = ['R', 'B', 'G', 'S', 'N', 'L', 'P'];
+  const MAXCOUNT = { P: 18, L: 4, N: 4, S: 4, G: 4, B: 2, R: 2, K: 2 };
+  const RANK_KANJI = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+  const FILE_ZEN = ['', '１', '２', '３', '４', '５', '６', '７', '８', '９'];
+
+  const GOLD = [[0, -1], [-1, -1], [1, -1], [-1, 0], [1, 0], [0, 1]];
+  const STEPS = {
+    P: [[0, -1]], N: [[-1, -2], [1, -2]],
+    S: [[0, -1], [-1, -1], [1, -1], [-1, 1], [1, 1]],
+    G: GOLD, '+P': GOLD, '+L': GOLD, '+N': GOLD, '+S': GOLD,
+    K: [[0, -1], [-1, -1], [1, -1], [-1, 0], [1, 0], [0, 1], [-1, 1], [1, 1]],
+    '+B': [[0, -1], [-1, 0], [1, 0], [0, 1]], '+R': [[-1, -1], [1, -1], [-1, 1], [1, 1]],
+  };
+  const SLIDES = { L: [[0, -1]], B: [[-1, -1], [1, -1], [-1, 1], [1, 1]], R: [[0, -1], [-1, 0], [1, 0], [0, 1]] };
+  SLIDES['+B'] = SLIDES.B; SLIDES['+R'] = SLIDES.R;
+  // 方向 [df, dr]: df は file の増減, dr は rank の増減（先手から見て前 = dr -1）
+
+  function typeKey(p) { const t = baseType(p); return isProm(p) ? '+' + t : t; }
+
+  function newPos() { return { board: new Array(81).fill(null), hands: [{}, {}], turn: 0, ply: 1 }; }
+  function clone(pos) { return { board: pos.board.slice(), hands: [Object.assign({}, pos.hands[0]), Object.assign({}, pos.hands[1])], turn: pos.turn, ply: pos.ply }; }
+
+  const START_SFEN = 'lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1';
+
+  function parseSfen(sfen) {
+    const pos = newPos();
+    const [bd, side, hand, ply] = sfen.trim().split(/\s+/);
+    const rows = bd.split('/');
+    if (rows.length !== 9) throw new Error('SFEN 段数エラー: ' + sfen);
+    rows.forEach((row, ri) => {
+      let f = 9; let prom = false;
+      for (const ch of row) {
+        if (ch === '+') { prom = true; continue; }
+        if (/\d/.test(ch)) { f -= +ch; continue; }
+        if (f < 1) throw new Error('SFEN 列エラー: ' + row);
+        pos.board[sq(f, ri + 1)] = (prom ? '+' : '') + ch; prom = false; f--;
+      }
+      if (f !== 0) throw new Error('SFEN 列数エラー: ' + row);
+    });
+    pos.turn = side === 'w' ? 1 : 0;
+    if (hand && hand !== '-') {
+      let n = 0;
+      for (const ch of hand) {
+        if (/\d/.test(ch)) { n = n * 10 + +ch; continue; }
+        const c = ch === ch.toUpperCase() ? 0 : 1;
+        const t = ch.toUpperCase();
+        pos.hands[c][t] = (pos.hands[c][t] || 0) + (n || 1); n = 0;
+      }
+    }
+    pos.ply = ply ? +ply : 1;
+    return pos;
+  }
+
+  function toSfen(pos) {
+    const rows = [];
+    for (let r = 1; r <= 9; r++) {
+      let s = ''; let e = 0;
+      for (let f = 9; f >= 1; f--) {
+        const p = pos.board[sq(f, r)];
+        if (!p) { e++; continue; }
+        if (e) { s += e; e = 0; } s += p;
+      }
+      if (e) s += e; rows.push(s);
+    }
+    let h = '';
+    for (const c of [0, 1]) for (const t of HAND_ORDER) {
+      const n = pos.hands[c][t] || 0; if (!n) continue;
+      h += (n > 1 ? n : '') + (c === 0 ? t : t.toLowerCase());
+    }
+    return rows.join('/') + ' ' + (pos.turn ? 'w' : 'b') + ' ' + (h || '-') + ' ' + pos.ply;
+  }
+
+  function inZone(c, r) { return c === 0 ? r <= 3 : r >= 7; }
+  // 先手視点に正規化した段（敵陣1段目 = 1）
+  function relRank(c, r) { return c === 0 ? r : 10 - r; }
+  function mustPromote(t, c, r) {
+    const rr = relRank(c, r);
+    if (t === 'P' || t === 'L') return rr === 1;
+    if (t === 'N') return rr <= 2;
+    return false;
+  }
+
+  // 疑似合法手（王手放置チェック前）
+  function pseudoMoves(pos, c, includeDrops = true) {
+    const moves = []; const B = pos.board; const dir = c === 0 ? 1 : -1;
+    for (let i = 0; i < 81; i++) {
+      const p = B[i]; if (!p || colorOf(p) !== c) continue;
+      const k = typeKey(p); const f = fileOf(i), r = rankOf(i);
+      const add = (tf, tr) => {
+        const to = sq(tf, tr); const t = baseType(p);
+        const canProm = !isProm(p) && PROMOTABLE[t] && (inZone(c, r) || inZone(c, tr));
+        if (canProm) moves.push({ from: i, to, promote: true, piece: p });
+        if (!mustPromote(isProm(p) ? '' : t, c, tr)) moves.push({ from: i, to, promote: false, piece: p });
+      };
+      for (const [df, dr] of (STEPS[k] || [])) {
+        const tf = f + df * dir, tr = r + dr * dir;
+        if (tf < 1 || tf > 9 || tr < 1 || tr > 9) continue;
+        const q = B[sq(tf, tr)]; if (q && colorOf(q) === c) continue;
+        add(tf, tr);
+      }
+      for (const [df, dr] of (SLIDES[k] || [])) {
+        let tf = f + df * dir, tr = r + dr * dir;
+        while (tf >= 1 && tf <= 9 && tr >= 1 && tr <= 9) {
+          const q = B[sq(tf, tr)];
+          if (q && colorOf(q) === c) break;
+          add(tf, tr);
+          if (q) break;
+          tf += df * dir; tr += dr * dir;
+        }
+      }
+    }
+    if (includeDrops) {
+      const h = pos.hands[c];
+      for (const t of HAND_ORDER) {
+        if (!h[t]) continue;
+        const pawnFiles = {};
+        if (t === 'P') for (let i = 0; i < 81; i++) if (B[i] === (c === 0 ? 'P' : 'p')) pawnFiles[fileOf(i)] = 1;
+        for (let i = 0; i < 81; i++) {
+          if (B[i]) continue; const r = rankOf(i);
+          if (mustPromote(t, c, r)) continue;
+          if (t === 'P' && pawnFiles[fileOf(i)]) continue; // 二歩
+          moves.push({ drop: t, to: i, piece: c === 0 ? t : t.toLowerCase() });
+        }
+      }
+    }
+    return moves;
+  }
+
+  function applyMove(pos, m) {
+    const n = clone(pos); const c = pos.turn;
+    if (m.drop) {
+      n.board[m.to] = c === 0 ? m.drop : m.drop.toLowerCase();
+      n.hands[c][m.drop]--; if (!n.hands[c][m.drop]) delete n.hands[c][m.drop];
+    } else {
+      const cap = n.board[m.to];
+      if (cap) { const t = baseType(cap); n.hands[c][t] = (n.hands[c][t] || 0) + 1; }
+      let p = n.board[m.from];
+      if (m.promote) p = '+' + p;
+      n.board[m.to] = p; n.board[m.from] = null;
+    }
+    n.turn = 1 - c; n.ply = pos.ply + 1;
+    return n;
+  }
+
+  function kingSq(pos, c) { const k = c === 0 ? 'K' : 'k'; return pos.board.indexOf(k); }
+
+  function attacked(pos, target, byC) {
+    // byC の駒が target を利かせているか
+    const B = pos.board; const dir = byC === 0 ? 1 : -1;
+    const tf = fileOf(target), tr = rankOf(target);
+    for (let i = 0; i < 81; i++) {
+      const p = B[i]; if (!p || colorOf(p) !== byC) continue;
+      const k = typeKey(p); const f = fileOf(i), r = rankOf(i);
+      for (const [df, dr] of (STEPS[k] || [])) if (f + df * dir === tf && r + dr * dir === tr) return true;
+      for (const [df, dr] of (SLIDES[k] || [])) {
+        let x = f + df * dir, y = r + dr * dir;
+        while (x >= 1 && x <= 9 && y >= 1 && y <= 9) {
+          if (x === tf && y === tr) return true;
+          if (B[sq(x, y)]) break;
+          x += df * dir; y += dr * dir;
+        }
+      }
+    }
+    return false;
+  }
+  function inCheck(pos, c) { const k = kingSq(pos, c); return k >= 0 && attacked(pos, k, 1 - c); }
+
+  function legalMoves(pos, opts = {}) {
+    const c = pos.turn; const res = [];
+    for (const m of pseudoMoves(pos, c, true)) {
+      const n = applyMove(pos, m);
+      if (inCheck(n, c)) continue;
+      if (m.drop === 'P' && !opts.skipUchifu) {
+        // 打ち歩詰め
+        if (inCheck(n, 1 - c) && legalMoves(n, { skipUchifu: true }).length === 0) continue;
+      }
+      res.push(m);
+    }
+    return res;
+  }
+  function isMate(pos) { return inCheck(pos, pos.turn) && legalMoves(pos).length === 0; }
+
+  function sameMove(a, b) {
+    if (!!a.drop !== !!b.drop) return false;
+    if (a.drop) return a.drop === b.drop && a.to === b.to;
+    return a.from === b.from && a.to === b.to && !!a.promote === !!b.promote;
+  }
+  function moveToUsi(m) {
+    const s = i => fileOf(i) + 'abcdefghi'[rankOf(i) - 1];
+    return m.drop ? m.drop + '*' + s(m.to) : s(m.from) + s(m.to) + (m.promote ? '+' : '');
+  }
+
+  // 表記: "76歩" "同歩" "58金(69)" "22角成" "22角不成" "55角打" 先頭の▲△は任意
+  const KANJI2T = { '歩': 'P', '香': 'L', '桂': 'N', '銀': 'S', '金': 'G', '角': 'B', '飛': 'R', '玉': 'K', '王': 'K', 'と': '+P', '杏': '+L', '成香': '+L', '圭': '+N', '成桂': '+N', '全': '+S', '成銀': '+S', '馬': '+B', '龍': '+R', '竜': '+R' };
+  function resolve(pos, text, lastTo) {
+    const s0 = text.replace(/^[▲△☗☖]/, '').trim();
+    const m = s0.match(/^(同|[1-9１-９][1-9１-９一二三四五六七八九])\s*(成香|成桂|成銀|[歩香桂銀金角飛玉王と杏圭全馬龍竜])(打|成|不成)?(?:\((\d)(\d)\))?$/);
+    if (!m) throw new Error('表記エラー: ' + text);
+    const z = ch => { const a = '１２３４５６７８９'.indexOf(ch); if (a >= 0) return a + 1; const b = '一二三四五六七八九'.indexOf(ch); if (b >= 0) return b + 1; return +ch; };
+    let to;
+    if (m[1] === '同') { if (lastTo == null) throw new Error('同の前に手がない: ' + text); to = lastTo; }
+    else to = sq(z(m[1][0]), z(m[1][1]));
+    const tk = KANJI2T[m[2]]; const mod = m[3] || ''; const from = m[4] ? sq(+m[4], +m[5]) : null;
+    const legal = legalMoves(pos);
+    let cands = legal.filter(x => x.to === to);
+    if (mod === '打') cands = cands.filter(x => x.drop === tk);
+    else {
+      const board = cands.filter(x => !x.drop && typeKey(x.piece) === tk);
+      if (board.length) {
+        cands = board;
+        if (from != null) cands = cands.filter(x => x.from === from);
+        const anyProm = cands.some(x => x.promote);
+        if (mod === '成') cands = cands.filter(x => x.promote);
+        else if (mod === '不成') cands = cands.filter(x => !x.promote);
+        else if (anyProm) {
+          const np = cands.filter(x => !x.promote);
+          if (np.length && np.length < cands.length) throw new Error('成/不成の指定が必要: ' + text);
+        }
+      } else cands = cands.filter(x => x.drop === tk);
+    }
+    if (cands.length === 0) throw new Error('非合法手: ' + text + '  局面: ' + toSfen(pos));
+    if (cands.length > 1) throw new Error('曖昧な手（(元位置)で指定）: ' + text + ' 候補 ' + cands.map(moveToUsi).join(','));
+    return cands[0];
+  }
+
+  function moveLabel(pos, m, lastTo) {
+    const c = pos.turn; const mark = c === 0 ? '☗' : '☖';
+    const dst = (lastTo === m.to && !m.drop) ? '同' : FILE_ZEN[fileOf(m.to)] + RANK_KANJI[rankOf(m.to)];
+    if (m.drop) {
+      const amb = legalMoves(pos).some(x => !x.drop && x.to === m.to && baseType(x.piece) === m.drop && !isProm(x.piece));
+      return mark + dst + KANJI_KIF[m.drop] + (amb ? '打' : '');
+    }
+    const k = typeKey(m.piece);
+    let suf = '';
+    if (!isProm(m.piece) && PROMOTABLE[baseType(m.piece)]) {
+      const can = inZone(c, rankOf(m.from)) || inZone(c, rankOf(m.to));
+      if (m.promote) suf = '成'; else if (can) suf = '不成';
+    }
+    return mark + dst + KANJI_KIF[k] + suf;
+  }
+
+  function perft(pos, d) { if (d === 0) return 1; let n = 0; for (const m of legalMoves(pos)) n += d === 1 ? 1 : perft(applyMove(pos, m), d - 1); return n; }
+
+  // 局面の妥当性チェック（手で作った局面用）
+  function validate(pos, opts = {}) {
+    const errs = []; const cnt = {};
+    pos.board.forEach((p, i) => {
+      if (!p) return; const t = baseType(p); const c = colorOf(p);
+      cnt[t] = (cnt[t] || 0) + 1;
+      if (!isProm(p) && mustPromote(t, c, rankOf(i))) errs.push('行き所のない駒 ' + p + '@' + fileOf(i) + rankOf(i));
+      if (isProm(p) && (t === 'G' || t === 'K')) errs.push('成れない駒が成っている ' + p);
+    });
+    for (const c of [0, 1]) for (const t in pos.hands[c]) { if (t === 'K' || !MAXCOUNT[t]) errs.push('持ち駒エラー ' + t); cnt[t] = (cnt[t] || 0) + pos.hands[c][t]; }
+    for (const t in MAXCOUNT) if ((cnt[t] || 0) > MAXCOUNT[t]) errs.push(t + ' が多すぎる(' + cnt[t] + ')');
+    if (opts.full) for (const t in MAXCOUNT) if ((cnt[t] || 0) !== MAXCOUNT[t]) errs.push(t + ' の総数が' + MAXCOUNT[t] + 'でない(' + (cnt[t] || 0) + ')');
+    for (const c of [0, 1]) {
+      const files = {};
+      pos.board.forEach((p, i) => { if (p === (c === 0 ? 'P' : 'p')) { if (files[fileOf(i)]) errs.push('二歩 ' + (c ? '後手' : '先手') + ' ' + fileOf(i) + '筋'); files[fileOf(i)] = 1; } });
+    }
+    if (pos.board.filter(p => p === 'K').length !== 1 && !opts.noSenteKing) errs.push('先手玉の数');
+    if (pos.board.filter(p => p === 'k').length !== 1) errs.push('後手玉の数');
+    if (inCheck(pos, 1 - pos.turn)) errs.push('手番でない側が王手されている');
+    return errs;
+  }
+
+  // n手以内の詰み探索（攻め方 = 手番側）。戻り値: 詰ませる初手の配列
+  function mateMoves(pos, depth) {
+    const c = pos.turn; const res = [];
+    for (const m of legalMoves(pos)) {
+      const n = applyMove(pos, m);
+      if (!inCheck(n, 1 - c)) continue;
+      if (mateAfterCheck(n, depth - 1)) res.push(m);
+    }
+    return res;
+  }
+  function mateAfterCheck(pos, depth) { // 王手された局面で、玉方が逃れられないか
+    const ds = legalMoves(pos);
+    if (ds.length === 0) return true;
+    if (depth < 2) return false;
+    for (const d of ds) { const n = applyMove(pos, d); if (mateMoves(n, depth - 1).length === 0) return false; }
+    return true;
+  }
+
+  const api = { sq, fileOf, rankOf, colorOf, baseType, isProm, typeKey, KANJI, KANJI_KIF, HAND_ORDER, RANK_KANJI, FILE_ZEN, START_SFEN, parseSfen, toSfen, legalMoves, applyMove, inCheck, isMate, sameMove, moveToUsi, resolve, moveLabel, perft, validate, mateMoves, inZone, mustPromote, clone };
+  if (typeof module !== 'undefined') module.exports = api; else root.Shogi = api;
+})(this);
+</script>
+<script>// 居飛車道場 ドリルデータ
+// 手順ドリル: setup（ここまでの手順・出題なし）→ line（自分の手が出題、相手の手は自動）
+//   "▲26歩|解説"  別解: "▲28飛/▲26飛|解説"（先頭が本線）
+// 詰み・寄せドリル: pos（駒配置）+ mate（手数）— 正解はエンジンが詰み探索で判定
+(function (root) {
+const LEVELS = [
+  { lv: 1, name: '基礎編', sub: '居飛車の駒組を体で覚える' },
+  { lv: 2, name: '対振り飛車', sub: '舟囲い・エルモ・穴熊・超速' },
+  { lv: 3, name: '相居飛車', sub: '相掛かり・角換わり・棒銀・早繰り銀' },
+  { lv: 4, name: '攻めの手筋', sub: '仕掛け・両取り・詰めろのかけ方' },
+  { lv: 5, name: '受けの手筋', sub: '詰めろを見抜いてしのぐ（エンジン検証済み）' },
+  { lv: 6, name: '寄せ・詰み', sub: '美濃・矢倉・舟囲い・穴熊・雁木の崩し方（エンジン検証済み）' },
+  { lv: 7, name: '後手番の総仕上げ', sub: '後手番で居飛車を組み切る' },
+];
+const CATS = { kumi: '駒組', seme: '攻め', uke: '受け', yose: '寄せ', taisaku: '相手の変化' };
+
+const D = [];
+const add = d => D.push(d);
+const OPEN_SHIKEN = '▲76歩 △34歩 ▲26歩 △44歩 ▲48銀 △42飛 ▲68玉 △62玉 ▲78玉 △72玉 ▲58金(49) △82玉';
+const OPEN_KAKUGAWARI = '▲76歩 △84歩 ▲26歩 △32金 ▲78金 △85歩 ▲77角 △34歩 ▲68銀 △77角成 ▲同銀 △22銀';
+const OPEN_AIGAKARI = '▲26歩 △84歩 ▲25歩 △85歩 ▲78金 △32金';
+
+// ===================== Lv1 基礎編 =====================
+add({ id: 'b01', lv: 1, cat: 'kumi', side: 'b', title: '飛車先を伸ばす（相掛かりの出だし）',
+  desc: '居飛車の基本中の基本。飛車先の歩を伸ばし、交換して飛車を働かせる。',
+  line: [
+    '▲26歩|居飛車の第一歩。飛車の前の歩を伸ばし、飛車を攻めに使う準備。',
+    '△84歩|後手も居飛車。',
+    '▲25歩|さらに伸ばして次の▲24歩（飛車先交換）を見せる。',
+    '△85歩',
+    '▲78金|△86歩からの角頭攻めに備える大事な一手。四間飛車にはなかった「角の頭を金で守る」感覚。',
+    '△32金|後手も2筋を受ける。',
+    '▲24歩|飛車先交換。歩が1枚持ち駒になり、飛車が前に出られる。',
+    '△同歩',
+    '▲同飛|飛車で取り返す。',
+    '△23歩|後手は歩を打って飛車を追い返す。',
+    '▲28飛/▲26飛|元の位置に引く「引き飛車」が基本で安全。▲26飛の「浮き飛車」も有力。',
+    '△86歩|今度は後手が飛車先交換。',
+    '▲同歩|取るのが自然。',
+    '△同飛',
+    '▲87歩|歩を打って飛車を追う。交換された側は歩で受けるのが基本。',
+  ] });
+
+add({ id: 'b02', lv: 1, cat: 'kumi', side: 'b', title: '角換わりの基本形',
+  desc: '角を交換して始まる将棋。角を打ち込まれる隙を作らない駒組が大切。',
+  line: [
+    '▲76歩|角道を開ける。',
+    '△84歩',
+    '▲26歩',
+    '△32金',
+    '▲78金|角の頭を守る。角換わりでは▲78金が必須。',
+    '△85歩',
+    '▲77角|△86歩を受けつつ角交換を待つ。',
+    '△34歩',
+    '▲68銀|角を交換したら銀で取り返せるように準備。',
+    '△77角成|後手から角交換。',
+    '▲同銀|銀で取り返す。▲同桂は形が悪い。',
+    '△22銀',
+    '▲48銀|右銀を上げる。ここから棒銀・早繰り銀・腰掛け銀と分かれる。',
+    '△33銀',
+    '▲46歩|腰掛け銀を目指す場合は4筋の歩を突く（銀を47へ通す道）。',
+    '△62銀',
+    '▲47銀',
+    '△64歩',
+    '▲36歩|桂を37に跳ねられるようにする。',
+    '△63銀',
+    '▲56銀|銀が5六に「腰掛けた」形。これが腰掛け銀。',
+  ] });
+
+add({ id: 'b03', lv: 1, cat: 'kumi', side: 'b', title: '舟囲いを組む（対四間飛車）',
+  desc: '急戦用の基本の囲い。玉を2手で囲える速さが魅力。',
+  line: [
+    '▲76歩', '△34歩',
+    '▲26歩|居飛車の意思表示。',
+    '△44歩|角道を止めた。振り飛車の可能性が高い。',
+    '▲48銀|右銀を上げる。急戦にも持久戦にも必要な一手。',
+    '△42飛|四間飛車。あなたがよく知る形を、今日は反対側から見る。',
+    '▲68玉|玉を左へ。居飛車の玉は左側に囲う。',
+    '△62玉',
+    '▲78玉',
+    '△72玉',
+    '▲58金(49)|これで舟囲いの完成。右の金を58へ寄るのがポイント。',
+    '△82玉',
+    '▲56歩|5筋の歩を突いて右銀の活用（57銀）に備える。',
+    '△72銀|後手は美濃囲い。',
+    '▲25歩|飛車先を伸ばす。△33角を強制する。',
+    '△33角',
+    '▲36歩|3筋の歩を突く。急戦の仕掛けの土台になる。',
+    '△52金(41)|後手の本美濃完成。',
+  ] });
+
+add({ id: 'b04', lv: 1, cat: 'kumi', side: 'b', title: 'エルモ囲いを組む',
+  desc: 'AI将棋ソフト「elmo」が指して流行した囲い。舟囲いより横からの攻めに強い。',
+  setup: OPEN_SHIKEN,
+  line: [
+    '▲68銀|左銀を68へ。エルモ囲いの第一歩。',
+    '△72銀',
+    '▲79金|金を一つ左へ。68の銀に金のひもがつき、舟囲いの弱点（6九金が浮く）を解消。これがエルモ囲い。',
+    '△52金(41)',
+    '▲56歩|急戦の準備。右銀を57に上がる道を作る。',
+    '△33角',
+    '▲57銀(48)|右銀を中央へ。46に出て攻めの主役になる。',
+    '△54歩',
+    '▲25歩|飛車先を伸ばして攻めの準備完了。',
+    '△64歩',
+    '▲46銀|銀が攻めの最前線へ。次は▲35歩や▲37桂。',
+  ] });
+
+add({ id: 'b05', lv: 1, cat: 'kumi', side: 'b', title: '居飛車穴熊を組む（対四間飛車）',
+  desc: '最も堅い囲い。初段を目指すなら対振り飛車の軸にしたい。',
+  setup: OPEN_SHIKEN,
+  line: [
+    '▲56歩|まずは舟囲いの形から穴熊に組み替える。',
+    '△72銀',
+    '▲25歩|飛車先を突いて△33角を強制。',
+    '△33角',
+    '▲36歩',
+    '△52金(41)',
+    '▲77角|角を動かして玉の通り道（88）を空ける。穴熊の合図。',
+    '△32銀',
+    '▲88玉',
+    '△43銀(32)',
+    '▲98香|香を上げて玉の入る場所を作る。',
+    '△54歩',
+    '▲99玉|玉が穴に潜った。',
+    '△64歩',
+    '▲88銀(79)|銀で玉にフタをする。',
+    '△63金(52)|後手は高美濃へ。',
+    '▲79金(69)|金を寄せて穴熊の完成。金銀3枚が玉にくっつく。',
+  ] });
+
+add({ id: 'b06', lv: 1, cat: 'kumi', side: 'w', title: '後手番の相掛かり',
+  desc: '後手番でも居飛車。相手の飛車先交換への対応を覚える。',
+  line: [
+    '▲26歩',
+    '△84歩|後手も飛車先を伸ばす。',
+    '▲25歩',
+    '△85歩',
+    '▲78金',
+    '△32金|▲24歩の飛車先交換に備えて2筋を受ける。',
+    '▲24歩|先手が飛車先交換。',
+    '△同歩|取る一手。',
+    '▲同飛',
+    '△23歩|歩を打って飛車を追う。',
+    '▲28飛',
+    '△86歩|こちらも飛車先交換。',
+    '▲同歩',
+    '△同飛',
+    '▲87歩',
+    '△82飛/△84飛/△85飛|引き飛車（△82飛）が安全。△84飛・△85飛も実戦例が多い。',
+  ] });
+
+add({ id: 'b07', lv: 1, cat: 'taisaku', side: 'b', title: '飛車先交換を許さない受け方',
+  desc: '相手の飛車先の歩を、何もせずに交換させてはいけない。',
+  line: [
+    '▲76歩', '△84歩', '▲26歩', '△85歩',
+    '▲77角|△86歩を受ける基本形。これで△86歩▲同歩△同飛は▲同角で飛車を取れる。',
+    '△34歩',
+    '▲78金|角の頭を金で守り、角が動いても大丈夫にする。',
+    '△32金',
+    '▲25歩',
+    '△77角成|角交換。',
+    '▲同金/▲同桂|金で取り返す形（▲同金）。▲同桂も可能だが、ここでは金で取る。',
+  ] });
+
+// ===================== Lv2 対振り飛車 =====================
+add({ id: 'f01', lv: 2, cat: 'kumi', side: 'b', title: '対四間 穴熊までの最短手順',
+  desc: '穴熊は「組めれば勝ち」と言われるほど堅い。手順を指が覚えるまで反復。',
+  line: [
+    '▲76歩', '△34歩', '▲26歩', '△44歩', '▲48銀', '△42飛',
+    '▲68玉', '△62玉', '▲78玉', '△72玉',
+    '▲77角|舟囲いを省略して、早めに角を上がるのも実戦的。',
+    '△82玉',
+    '▲88玉', '△72銀',
+    '▲98香', '△52金(41)',
+    '▲99玉', '△54歩',
+    '▲88銀(79)', '△64歩',
+    '▲79金(69)|穴熊完成。ここまで来れば四間飛車の攻めはかなり怖くない。',
+  ] });
+
+add({ id: 'f02', lv: 2, cat: 'kumi', side: 'b', title: '穴熊からの攻撃態勢づくり',
+  desc: '穴熊は組んで終わりではない。右の銀を中央へ、4筋・3筋の歩を伸ばして仕掛けの準備。',
+  setup: OPEN_SHIKEN + ' ▲77角 △72銀 ▲88玉 △52金(41) ▲98香 △32銀 ▲99玉 △54歩 ▲88銀(79) △64歩 ▲79金(69) △63金(52)',
+  line: [
+    '▲56歩|5筋を突いて右銀の通り道を作る。',
+    '△43銀(32)',
+    '▲57銀(48)|右銀が中央へ。5筋・4筋を厚くする。',
+    '△74歩',
+    '▲46歩|4筋を突く。将来の▲45歩の仕掛けの準備。',
+    '△14歩',
+    '▲25歩|飛車先を伸ばす。',
+    '△33角',
+    '▲36歩|3筋も突いて、3・4筋の歩が仕掛けの弾になる。',
+    '△52金(61)',
+    '▲68金(58)|左の金を玉側へ寄せる。穴熊は「金銀が多いほど堅い」。',
+  ] });
+
+add({ id: 'f03', lv: 4, cat: 'seme', side: 'b', title: '穴熊からの仕掛け ▲35歩→▲45歩',
+  desc: '穴熊の攻めは「歩を突き捨てて角を通す」が基本。角交換して堅さの差で勝つ。',
+  setup: OPEN_SHIKEN + ' ▲77角 △72銀 ▲88玉 △52金(41) ▲98香 △32銀 ▲99玉 △54歩 ▲88銀(79) △64歩 ▲79金(69) △63金(52) ▲56歩 △43銀(32) ▲57銀(48) △74歩 ▲46歩 △14歩 ▲25歩 △33角 ▲36歩 △52金(61) ▲68金(58) △94歩',
+  line: [
+    '▲35歩|3筋の歩を突き捨てる。△同歩と取らせて3筋に空間を作る。',
+    '△同歩',
+    '▲45歩|4筋の歩をぶつけて角道を通す。',
+    '△同歩',
+    '▲33角成|角交換。玉の堅さが違うので、大駒の交換は穴熊側が得をしやすい。',
+    '△同桂',
+    '▲24歩|飛車先も突き捨てて飛車を2筋で使う。',
+    '△同歩',
+    '▲同飛|21の桂が跳ねたので2筋は守りが薄い。次の▲21飛成が厳しい。持ち駒の角の打ち込みもあり、攻めが続く。',
+  ] });
+
+add({ id: 'f04', lv: 2, cat: 'kumi', side: 'b', title: '対三間飛車の駒組',
+  desc: '三間飛車は3筋から攻めてくる。3筋の守りを意識して穴熊へ。',
+  line: [
+    '▲76歩', '△34歩', '▲26歩', '△44歩', '▲48銀',
+    '△32飛|三間飛車。3筋が相手の攻め筋になる。',
+    '▲68玉', '△62玉',
+    '▲78玉', '△72玉',
+    '▲58金(49)', '△82玉',
+    '▲25歩', '△33角',
+    '▲56歩', '△72銀',
+    '▲77角|穴熊を目指す。三間には急戦より持久戦が指しやすい。',
+    '△52金(41)',
+    '▲88玉', '△54歩',
+    '▲98香', '△64歩',
+    '▲99玉', '△74歩',
+    '▲88銀(79)', '△63金(52)',
+    '▲79金(69)|三間相手でも穴熊。3筋の歩交換（△35歩）は許してよい。',
+  ] });
+
+add({ id: 'f05', lv: 2, cat: 'kumi', side: 'b', title: '超速▲37銀（対ゴキゲン中飛車）',
+  desc: '将棋ウォーズで多い中飛車への切り札。右銀を一直線に4六へ。',
+  line: [
+    '▲76歩', '△34歩', '▲26歩',
+    '△54歩|ゴキゲン中飛車の出だし。',
+    '▲25歩', '△52飛',
+    '▲48銀|超速の第一歩。',
+    '△55歩',
+    '▲68玉|玉を少し囲ってから銀を進める。',
+    '△62玉',
+    '▲36歩', '△32銀',
+    '▲37銀|これが「超速▲37銀」。次の▲46銀が速い。',
+    '△33銀|後手は銀を上がって5筋を守る準備。',
+    '▲46銀|銀が4六に出て、▲35歩や▲55銀を狙う。中飛車の5筋の歩を目標にする。',
+    '△44銀|後手は銀を出て受ける。（△44銀が間に合わないと▲55銀で5筋の歩を取られる）',
+    '▲78玉',
+    '△72玉',
+    '▲58金(49)|舟囲いで守りを固めてから戦う。',
+  ] });
+
+add({ id: 'f06', lv: 2, cat: 'kumi', side: 'b', title: '対向かい飛車の駒組',
+  desc: '向かい飛車は2筋で飛車がぶつかる。2筋は飛車1枚で受け、焦らず穴熊へ。',
+  line: [
+    '▲76歩', '△34歩', '▲26歩', '△44歩', '▲48銀',
+    '△33角|向かい飛車の準備で角が上がった。',
+    '▲68玉',
+    '△22飛|向かい飛車。2筋で飛車同士が向かい合う。',
+    '▲78玉', '△62玉',
+    '▲58金(49)', '△72玉',
+    '▲56歩', '△82玉',
+    '▲77角|穴熊を目指す。向かい飛車は△24歩からの飛車交換が狙いだが、28飛がいるので2筋は受かっている。',
+    '△72銀',
+    '▲88玉', '△52金(41)',
+    '▲98香', '△32銀',
+    '▲99玉|穴熊に潜る。向かい飛車が△24歩と突いてきても、飛車・角・銀で2筋はしっかり受かっている。',
+  ] });
+
+add({ id: 'f07', lv: 4, cat: 'seme', side: 'b', title: 'エルモ急戦の攻め方',
+  desc: '46銀・37桂の攻撃形から3筋・4筋で仕掛ける。',
+  setup: OPEN_SHIKEN + ' ▲68銀 △72銀 ▲79金 △52金(41) ▲56歩 △33角 ▲57銀(48) △54歩 ▲25歩 △64歩 ▲46銀 △32銀',
+  line: [
+    '▲36歩|桂を37に跳ねる準備。',
+    '△43銀(32)',
+    '▲37桂|銀と桂の攻撃形が完成。',
+    '△74歩',
+    '▲35歩|3筋の歩をぶつけて仕掛け。',
+    '△同歩',
+    '▲同銀|銀で取って前進。次は▲24歩や▲34銀で角を攻める。',
+    '△32飛|後手は飛車を3筋に回して受ける。',
+    '▲24歩|飛車先も突き捨て、33角の頭を狙う。',
+    '△同歩',
+    '▲同銀|2筋と3筋から一気に攻める。△同角なら▲同飛で銀と角の交換（駒得）。',
+  ] });
+
+// ===================== Lv3 相居飛車 =====================
+add({ id: 'a01', lv: 3, cat: 'kumi', side: 'b', title: '角換わり棒銀の駒組',
+  desc: '一番シンプルな攻め。銀をまっすぐ前に出し、2筋・1筋を突破する。',
+  setup: OPEN_KAKUGAWARI,
+  line: [
+    '▲38銀|棒銀は右銀を38→27→26と真っすぐ進める。',
+    '△62銀',
+    '▲25歩|飛車先を伸ばして銀の通り道（26）を空ける。',
+    '△33銀',
+    '▲27銀',
+    '△64歩',
+    '▲26銀|銀が2筋の歩の後ろに立った。',
+    '△14歩',
+    '▲16歩|端の歩を受ける。棒銀は1筋を攻めに使うので大事。',
+    '△63銀',
+    '▲15歩|端歩を突き捨てる！棒銀の基本の仕掛け。',
+    '△同歩',
+    '▲同銀|銀が前進。次の▲24歩、▲14歩が狙い。',
+    '△同香',
+    '▲同香|銀と香の交換だが、香と持ち駒の銀で端を攻める。',
+  ] });
+
+add({ id: 'a02', lv: 4, cat: 'kumi', side: 'b', title: '角換わり早繰り銀',
+  desc: '右銀を37→46→35と繰り出す攻め。後手の腰掛け銀に有効。',
+  setup: OPEN_KAKUGAWARI,
+  line: [
+    '▲48銀|早繰り銀も右銀を上げるところから。',
+    '△62銀',
+    '▲25歩',
+    '△33銀',
+    '▲36歩|37に銀を上がる道を作る。',
+    '△64歩',
+    '▲37銀|早繰り銀の第一歩。',
+    '△63銀',
+    '▲68玉|仕掛ける前に玉を59から逃がしておく。59に玉がいると、2筋で戦ったとき△15角の王手飛車がある。',
+    '△42玉',
+    '▲46銀|銀が4六へ。次は3筋で銀をぶつける。',
+    '△54銀',
+    '▲35歩|3筋の歩をぶつける。銀交換や3筋突破を狙う。',
+    '△同歩',
+    '▲同銀|銀が35まで進出。持ち駒に歩も1枚入った。',
+    '△34歩|後手は歩を打って銀を追い返す。',
+    '▲26銀/▲46銀|歩で取られる前に銀を引く。（ここで▲24歩と攻めると△35歩で銀を取られる）▲26銀なら2筋の攻めに加わり、▲46銀なら出直してもう一度3筋を狙う。',
+  ] });
+
+add({ id: 'a03', lv: 3, cat: 'kumi', side: 'b', title: '角換わり腰掛け銀の駒組（4八金・2九飛型）',
+  desc: 'プロで最も指される現代の形。飛車を29に引き、角の打ち込みの隙をなくす。',
+  setup: OPEN_KAKUGAWARI + ' ▲48銀 △33銀 ▲46歩 △62銀 ▲47銀 △64歩 ▲36歩 △63銀',
+  line: [
+    '▲56銀|腰掛け銀。',
+    '△54銀|後手も腰掛け銀（先後同型）。',
+    '▲68玉|玉を少し左へ。',
+    '△42玉',
+    '▲37桂|桂を跳ねて攻めの準備。',
+    '△74歩',
+    '▲48金(49)|現代の「4八金・2九飛型」。角の打ち込みに強いバランス型。',
+    '△73桂',
+    '▲29飛|飛車を29に引く。▲28飛のままだと△19角などの打ち込みが生じやすい。',
+    '△62金(61)|後手も同じ「6二金・8一飛型」を目指す。',
+    '▲25歩|飛車先を伸ばす。',
+    '△44歩',
+    '▲16歩|端歩を突いて準備完了。ここから▲45歩の仕掛けを狙う。',
+    '△81飛|後手も飛車を引いて先後同型。',
+  ] });
+
+add({ id: 'a04', lv: 4, cat: 'seme', side: 'b', title: '相掛かり棒銀',
+  desc: '相掛かりでも棒銀は有力。引き飛車＋棒銀で2筋を集中攻撃。',
+  setup: OPEN_AIGAKARI + ' ▲24歩 △同歩 ▲同飛 △23歩 ▲28飛 △86歩 ▲同歩 △同飛 ▲87歩 △82飛',
+  line: [
+    '▲38銀|引き飛車から棒銀へ。',
+    '△72銀',
+    '▲27銀',
+    '△34歩',
+    '▲26銀|2筋の歩がないので銀がスムーズに進む。',
+    '△64歩',
+    '▲16歩|端歩を突いておくと、銀が15に出る道もできる。',
+    '△14歩',
+    '▲25銀|次の▲24歩（歩を打つ）からの銀交換・2筋突破が狙い。',
+    '△63銀',
+    '▲24歩|持ち駒の歩を打って銀を前進させる。',
+    '△同歩',
+    '▲同銀|銀が24まで来た。△23歩なら▲33銀成や▲15銀など、攻めが続く。',
+  ] });
+
+
+add({ id: 'a05', lv: 3, cat: 'kumi', side: 'b', title: '相掛かり 浮き飛車から▲37銀',
+  desc: '▲26飛の浮き飛車は3筋・2筋の両方を見る現代的な形。右銀を37に上げてバランスよく構える。',
+  setup: OPEN_AIGAKARI + ' ▲24歩 △同歩 ▲同飛 △23歩',
+  line: [
+    '▲26飛|浮き飛車。飛車の横利きが86まで届くので、後手は△86歩からの交換がしにくくなる。',
+    '△72銀',
+    '▲38銀|右銀を上げる。',
+    '△84飛|後手も浮き飛車。',
+    '▲36歩|37に銀を上がる道を作る。浮き飛車と相性がよい。',
+    '△14歩',
+    '▲16歩|端歩は受けておくのが無難。',
+    '△34歩',
+    '▲37銀|銀が37に。次は▲46銀や▲35歩で攻めの形を作る。',
+  ] });
+
+add({ id: 't01', lv: 2, cat: 'taisaku', side: 'b', title: '2筋を受けない相手には飛車先交換',
+  desc: '▲25歩に△33角と受けずに駒組みしてくる相手には、飛車先交換で1歩得する。ウォーズの級位者戦でよくある。',
+  line: [
+    '▲76歩', '△34歩', '▲26歩', '△44歩',
+    '▲25歩|次の▲24歩が狙い。',
+    '△42飛|2筋を受けずに四間飛車に振った。',
+    '▲24歩|すかさず飛車先交換。',
+    '△同歩', '▲同飛',
+    '△32金|金で23の地点を守る。（すぐ△23歩は▲23飛成がある）',
+    '▲34飛/▲28飛|▲34飛と横に動いて歩を取るのが一番得。▲28飛と引いても飛車先交換の得は残る。',
+  ] });
+
+add({ id: 't02', lv: 1, cat: 'taisaku', side: 'w', title: '鬼殺しの受け方（後手番）',
+  desc: 'ウォーズで出会う奇襲「鬼殺し」。正しく受ければ先手の桂が取れる。',
+  line: [
+    '▲76歩', '△34歩',
+    '▲77桂|これが鬼殺し。次に▲65桂で53の地点を狙う。',
+    '△62銀|銀で53と73を守るのが正しい受け。（△84歩は▲65桂でいきなり苦しくなる）',
+    '▲65桂|跳ねてきた。',
+    '△64歩|桂の頭に歩を突く。桂は後ろに下がれないので取られてしまう。',
+    '▲53桂成|桂は前にしか進めず、逃げ場がない。歩と刺し違えるしかない。',
+    '△同銀|銀で取って後手は桂得（桂と歩の交換）。奇襲は正しく受ければ怖くない。',
+  ] });
+
+// ===================== Lv4 攻めの手筋 =====================
+// ===================== Lv5 受けの手筋 =====================
+// ===================== Lv6 寄せ・詰み =====================
+// 駒配置: 先手=大文字 後手=小文字。b: / w: に 筋段+駒。hand: 先手持ち駒。残りの駒は後手の持ち駒（詰将棋の慣例）。
+
+// ===================== Lv7 後手番・総合 =====================
+add({ id: 'g01', lv: 7, cat: 'kumi', side: 'w', title: '後手番：対四間飛車の居飛車穴熊',
+  desc: '後手番でも対振り飛車は穴熊。先手の時と左右・上下が反対になるだけ。',
+  line: [
+    '▲76歩', '△84歩|後手でも飛車先を突いて居飛車を表明。',
+    '▲66歩|先手が角道を止めた。振り飛車の可能性大。',
+    '△34歩',
+    '▲68飛|四間飛車。',
+    '△62銀|右銀を上げる（先手番の▲48銀と同じ意味）。',
+    '▲48玉', '△42玉|玉を右側（後手から見て左）へ。',
+    '▲38玉', '△32玉',
+    '▲28玉', '△33角|角を上がって玉の通り道を空ける。',
+    '▲38銀', '△22玉',
+    '▲58金(69)', '△12香|香を上げて穴を作る。',
+    '▲16歩', '△11玉|玉が穴に入った。',
+    '▲46歩', '△22銀(31)|銀でフタ。',
+    '▲47金(58)|先手は高美濃へ。',
+    '△31金(41)|金を寄せて後手穴熊の完成。',
+    '▲36歩',
+    '△54歩|穴熊が完成したら、5筋を突いて右銀を53→44方面に使う準備。',
+  ] });
+
+add({ id: 'g02', lv: 7, cat: 'kumi', side: 'w', title: '後手番：角換わりの受け方',
+  desc: '後手番で角換わりになったとき、角の打ち込みに隙を作らず腰掛け銀に組む。',
+  line: [
+    '▲76歩', '△84歩', '▲26歩',
+    '△32金|▲25歩▲24歩に備え、角の横を金で守る。',
+    '▲78金', '△85歩', '▲77角',
+    '△34歩|角道を開ける。角交換を受けて立つ。',
+    '▲68銀',
+    '△77角成|後手から角交換。手損だが、▲77同銀の形にさせる。',
+    '▲同銀',
+    '△22銀|角がいなくなった場所に銀を上げる。',
+    '▲48銀', '△33銀|銀を上げて2筋を守る。',
+    '▲46歩', '△62銀',
+    '▲47銀', '△64歩|6筋を突いて右銀を63→54に出す準備。',
+    '▲36歩', '△63銀',
+    '▲56銀', '△54銀|後手も腰掛け銀。先後同型。',
+  ] });
+
+add({ id: 'g03', lv: 7, cat: 'kumi', side: 'w', title: '後手番：対三間飛車の穴熊',
+  desc: '先手三間飛車にも後手穴熊。3筋の歩交換は許してOK。',
+  line: [
+    '▲76歩', '△84歩', '▲66歩', '△34歩',
+    '▲78飛|三間飛車。',
+    '△62銀', '▲48玉', '△42玉', '▲38玉', '△32玉', '▲28玉',
+    '△33角', '▲38銀', '△22玉', '▲58金(69)', '△12香',
+    '▲16歩', '△11玉', '▲46歩',
+    '△22銀(31)', '▲47金(58)',
+    '△31金(41)|金を寄せて後手穴熊の完成。',
+  ] });
+
+
+// ===================== 追加の定跡ドリル =====================
+add({ id: 'b08', lv: 1, cat: 'kumi', side: 'b', title: '雁木囲いを組む',
+  desc: 'AIの影響で復活した、ウォーズでも人気の囲い。角道を止めて、銀2枚を67・57に並べる。',
+  line: [
+    '▲76歩', '△84歩',
+    '▲66歩|角道を止めるのが雁木の出発点。角交換を避けて、じっくり組める。',
+    '△34歩',
+    '▲68銀|左銀を上げる。', '△85歩',
+    '▲77角|△86歩からの角頭攻めを受ける。', '△62銀',
+    '▲67銀|銀を67へ。雁木の1枚目の銀。', '△42玉',
+    '▲48銀|右銀も上げる。', '△32玉',
+    '▲56歩|5筋を突いて、57に銀が上がる場所を作る。', '△52金(41)',
+    '▲57銀(48)|右銀を57へ。67・57に銀が横に並ぶのが雁木の形。', '△33角',
+    '▲78金|角の横に金を置き、角頭を守る。', '△22玉',
+    '▲58金(49)|右の金も寄せる。', '△74歩',
+    '▲69玉|玉を69へ。これで雁木囲いの完成。銀2枚が前に出ているので、上からの攻めに強い。',
+  ] });
+
+add({ id: 'b09', lv: 1, cat: 'kumi', side: 'b', title: '金矢倉を組む',
+  desc: '相居飛車の伝統的な囲い。金銀3枚で玉を守る。手順が長いので、指が覚えるまで反復。',
+  line: [
+    '▲76歩', '△84歩',
+    '▲68銀|矢倉は左銀を68→77と上げるところから。', '△34歩',
+    '▲66歩|角道を止める。', '△62銀',
+    '▲56歩', '△54歩',
+    '▲48銀', '△42銀',
+    '▲58金(49)', '△32金',
+    '▲78金|左の金を78へ。', '△41玉',
+    '▲69玉', '△52金(61)',
+    '▲67金(58)|右の金を67へ斜めに上がる。', '△53銀(42)',
+    '▲77銀|銀を77へ。金銀3枚の矢倉の形ができた。', '△31角',
+    '▲79角|角を79に引く。', '△44歩',
+    '▲68角|角を68へ移して、79を玉の通り道として空ける。', '△74歩',
+    '▲79玉', '△73桂',
+    '▲88玉|玉が88に入って金矢倉の完成（入城）。88玉・77銀・78金・67金が基本形。',
+  ] });
+
+add({ id: 'f08', lv: 2, cat: 'kumi', side: 'b', title: '左美濃を組む（対四間飛車）',
+  desc: '穴熊より早く組めて、上からの攻めにも強い囲い。振り飛車の美濃囲いを左右反対にした形。',
+  line: [
+    '▲76歩', '△34歩', '▲26歩', '△44歩', '▲48銀', '△42飛',
+    '▲68玉', '△62玉',
+    '▲78玉', '△72玉',
+    '▲58金(49)|右の金を寄せる。', '△82玉',
+    '▲77角|角を上がって88を空ける。', '△72銀',
+    '▲88玉|玉を88へ。', '△52金(41)',
+    '▲78銀(79)|銀を78へ上がって左美濃の完成。四間飛車党のあなたには見慣れた美濃の形を、反対側で使う。', '△32銀',
+    '▲56歩|5筋を突いて右銀の活用（57銀）に備える。', '△54歩',
+    '▲57銀(48)|右銀を中央へ。左美濃は組むのが早い分、攻めの準備に手をかけられる。',
+  ] });
+
+add({ id: 'f09', lv: 2, cat: 'kumi', side: 'b', title: '対ゴキゲン中飛車の居飛車穴熊',
+  desc: '中飛車には超速だけでなく穴熊も有力。5筋の位を取られても、堅さで勝負する。',
+  line: [
+    '▲76歩', '△34歩', '▲26歩',
+    '△54歩|中飛車の出だし。', '▲48銀',
+    '△52飛', '▲68玉',
+    '△55歩|5筋の位を取ってきた。', '▲78玉',
+    '△62玉', '▲77角|角を上がって穴熊を目指す。55の歩があるので角交換は起きにくい。',
+    '△72玉', '▲88玉',
+    '△82玉', '▲98香',
+    '△72銀', '▲99玉',
+    '△32銀', '▲88銀(79)',
+    '△44歩', '▲79金(69)|中飛車相手でも穴熊完成。5筋で戦いになっても、玉が遠いので怖くない。',
+  ] });
+
+add({ id: 'a06', lv: 3, cat: 'kumi', side: 'b', title: '横歩取りの基本手順',
+  desc: '相掛かりで後手が3四の歩を守らないと、飛車で歩を取れる。横歩取りは激しいので、基本手順を覚えておく。',
+  line: [
+    '▲76歩', '△34歩', '▲26歩', '△84歩', '▲25歩', '△85歩',
+    '▲78金|角の頭を守る。', '△32金',
+    '▲24歩|飛車先交換。', '△同歩', '▲同飛',
+    '△86歩|後手も飛車先交換。', '▲同歩', '△同飛',
+    '▲34飛|3四の歩を取る。これが「横歩取り」。1歩得になる。',
+    '△33角|角を上がって、飛車の利きを止める。',
+    '▲36飛|飛車を36へ引く。▲34飛のままだと角に狙われやすい。',
+    '△84飛|後手は飛車を引く。',
+    '▲26飛|飛車を2筋に戻す。', '△22銀',
+    '▲87歩|8筋に歩を打って、角の頭を固める。', '△23歩',
+  ] });
+
+add({ id: 't03', lv: 3, cat: 'taisaku', side: 'b', title: '浮き飛車の横利きで飛車を取る',
+  desc: '▲26飛の浮き飛車は86まで利いている。うっかり△86歩から飛車先交換してくる相手には、飛車をタダで取れる。',
+  setup: OPEN_AIGAKARI + ' ▲24歩 △同歩 ▲同飛 △23歩',
+  line: [
+    '▲26飛|浮き飛車。飛車の横の利きが86まで通っている。',
+    '△86歩|後手が飛車先交換に来た。',
+    '▲同歩|まずは取る。', '△同飛',
+    '▲同飛|26の飛車が横に走って、86の飛車をタダで取れる。駒の利きを横にも見る習慣をつけよう。',
+  ] });
+
+add({ id: 'g04', lv: 7, cat: 'kumi', side: 'w', title: '後手番：先手中飛車に穴熊',
+  desc: '後手番で先手に中飛車にされたときも、穴熊が組みやすい。',
+  line: [
+    '▲76歩', '△84歩',
+    '▲56歩|先手中飛車の出だし。', '△34歩',
+    '▲58飛|中飛車。', '△62銀|右銀を上げる。',
+    '▲48玉', '△42玉',
+    '▲38玉', '△32玉',
+    '▲28玉', '△33角|角を上がって玉の通り道を空ける。',
+    '▲38銀', '△22玉',
+    '▲55歩', '△12香',
+    '▲16歩', '△11玉',
+    '▲46歩', '△22銀(31)',
+    '▲36歩', '△31金(41)|金を寄せて後手穴熊の完成。中飛車にも穴熊は有効。',
+  ] });
+
+const api = { LEVELS, CATS, DRILLS: D };
+if (typeof module !== 'undefined') module.exports = api; else root.DrillData = api;
+})(this);
+
+;window.DrillData.DRILLS.push(...[{"id":"b02w","lv":1,"cat":"kumi","side":"w","title":"角換わりの基本形【後手番】","desc":"角を交換して始まる将棋。角を打ち込まれる隙を作らない駒組が大切。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩|角道を開ける。","▲26歩","△84歩","▲78金","△32金|角の頭を守る。角換わりでは△32金が必須。","▲25歩","△33角|▲24歩を受けつつ角交換を待つ。","▲76歩","△42銀|角を交換したら銀で取り返せるように準備。","▲33角成|先手から角交換。","△同銀|銀で取り返す。△同桂は形が悪い。","▲88銀","△62銀|右銀を上げる。ここから棒銀・早繰り銀・腰掛け銀と分かれる。","▲77銀","△64歩|腰掛け銀を目指す場合は6筋の歩を突く（銀を63へ通す道）。","▲48銀","△63銀","▲46歩","△74歩|桂を73に跳ねられるようにする。","▲47銀","△54銀|銀が5四に「腰掛けた」形。これが腰掛け銀。"]},{"id":"b03w","lv":1,"cat":"kumi","side":"w","title":"舟囲いを組む（対四間飛車）【後手番】","desc":"急戦用の基本の囲い。玉を2手で囲える速さが魅力。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲76歩","△84歩|居飛車の意思表示。","▲66歩|角道を止めた。振り飛車の可能性が高い。","△62銀|右銀を上げる。急戦にも持久戦にも必要な一手。","▲68飛|四間飛車。あなたがよく知る形を、今日は反対側から見る。","△42玉|玉を左へ。居飛車の玉は左側に囲う。","▲48玉","△32玉","▲38玉","△52金(61)|これで舟囲いの完成。右の金を52へ寄るのがポイント。","▲28玉","△54歩|5筋の歩を突いて右銀の活用（53銀）に備える。","▲38銀|先手は美濃囲い。","△85歩|飛車先を伸ばす。▲77角を強制する。","▲77角","△74歩|7筋の歩を突く。急戦の仕掛けの土台になる。","▲58金(69)|先手の本美濃完成。"]},{"id":"b04w","lv":1,"cat":"kumi","side":"w","title":"エルモ囲いを組む【後手番】","desc":"AI将棋ソフト「elmo」が指して流行した囲い。舟囲いより横からの攻めに強い。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩 △34歩 ▲76歩 △84歩 ▲66歩 △62銀 ▲68飛 △42玉 ▲48玉 △32玉 ▲38玉 △52金(61) ▲28玉","line":["△42銀|左銀を42へ。エルモ囲いの第一歩。","▲38銀","△31金|金を一つ左へ。42の銀に金のひもがつき、舟囲いの弱点（4一金が浮く）を解消。これがエルモ囲い。","▲58金(69)","△54歩|急戦の準備。右銀を53に上がる道を作る。","▲77角","△53銀(62)|右銀を中央へ。64に出て攻めの主役になる。","▲56歩","△85歩|飛車先を伸ばして攻めの準備完了。","▲46歩","△64銀|銀が攻めの最前線へ。次は△75歩や△73桂。"]},{"id":"b05w","lv":1,"cat":"kumi","side":"w","title":"居飛車穴熊を組む（対四間飛車）【後手番】","desc":"最も堅い囲い。初段を目指すなら対振り飛車の軸にしたい。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩 △34歩 ▲76歩 △84歩 ▲66歩 △62銀 ▲68飛 △42玉 ▲48玉 △32玉 ▲38玉 △52金(61) ▲28玉","line":["△54歩|まずは舟囲いの形から穴熊に組み替える。","▲38銀","△85歩|飛車先を突いて▲77角を強制。","▲77角","△74歩","▲58金(69)","△33角|角を動かして玉の通り道（22）を空ける。穴熊の合図。","▲78銀","△22玉","▲67銀(78)","△12香|香を上げて玉の入る場所を作る。","▲56歩","△11玉|玉が穴に潜った。","▲46歩","△22銀(31)|銀で玉にフタをする。","▲47金(58)|先手は高美濃へ。","△31金(41)|金を寄せて穴熊の完成。金銀3枚が玉にくっつく。"]},{"id":"f01w","lv":2,"cat":"kumi","side":"w","title":"対四間 穴熊までの最短手順【後手番】","desc":"穴熊は「組めれば勝ち」と言われるほど堅い。手順を指が覚えるまで反復。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲76歩","△84歩","▲66歩","△62銀","▲68飛","△42玉","▲48玉","△32玉","▲38玉","△33角|舟囲いを省略して、早めに角を上がるのも実戦的。","▲28玉","△22玉","▲38銀","△12香","▲58金(69)","△11玉","▲56歩","△22銀(31)","▲46歩","△31金(41)|穴熊完成。ここまで来れば四間飛車の攻めはかなり怖くない。"]},{"id":"f02w","lv":2,"cat":"kumi","side":"w","title":"穴熊からの攻撃態勢づくり【後手番】","desc":"穴熊は組んで終わりではない。右の銀を中央へ、6筋・7筋の歩を伸ばして仕掛けの準備。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲16歩 △34歩 ▲76歩 △84歩 ▲66歩 △62銀 ▲68飛 △42玉 ▲48玉 △32玉 ▲38玉 △52金(61) ▲28玉 △33角 ▲38銀 △22玉 ▲58金(69) △12香 ▲78銀 △11玉 ▲56歩 △22銀(31) ▲46歩 △31金(41) ▲47金(58)","line":["△54歩|5筋を突いて右銀の通り道を作る。","▲67銀(78)","△53銀(62)|右銀が中央へ。5筋・6筋を厚くする。","▲36歩","△64歩|6筋を突く。将来の△65歩の仕掛けの準備。","▲96歩","△85歩|飛車先を伸ばす。","▲77角","△74歩|7筋も突いて、7・6筋の歩が仕掛けの弾になる。","▲58金(49)","△42金(52)|左の金を玉側へ寄せる。穴熊は「金銀が多いほど堅い」。"]},{"id":"f03w","lv":4,"cat":"seme","side":"w","title":"穴熊からの仕掛け △75歩→△65歩【後手番】","desc":"穴熊の攻めは「歩を突き捨てて角を通す」が基本。角交換して堅さの差で勝つ。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲26歩 △34歩 ▲76歩 △84歩 ▲66歩 △62銀 ▲68飛 △42玉 ▲48玉 △32玉 ▲38玉 △52金(61) ▲28玉 △33角 ▲38銀 △22玉 ▲58金(69) △12香 ▲78銀 △11玉 ▲56歩 △22銀(31) ▲46歩 △31金(41) ▲47金(58) △54歩 ▲67銀(78) △53銀(62) ▲36歩 △64歩 ▲96歩 △85歩 ▲77角 △74歩 ▲58金(49) △42金(52) ▲16歩","line":["△75歩|7筋の歩を突き捨てる。▲同歩と取らせて7筋に空間を作る。","▲同歩","△65歩|6筋の歩をぶつけて角道を通す。","▲同歩","△77角成|角交換。玉の堅さが違うので、大駒の交換は穴熊側が得をしやすい。","▲同桂","△86歩|飛車先も突き捨てて飛車を8筋で使う。","▲同歩","△同飛|89の桂が跳ねたので8筋は守りが薄い。次の△89飛成が厳しい。持ち駒の角の打ち込みもあり、攻めが続く。"]},{"id":"f04w","lv":2,"cat":"kumi","side":"w","title":"対三間飛車の駒組【後手番】","desc":"三間飛車は7筋から攻めてくる。7筋の守りを意識して穴熊へ。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲76歩","△84歩","▲66歩","△62銀","▲78飛|三間飛車。7筋が相手の攻め筋になる。","△42玉","▲48玉","△32玉","▲38玉","△52金(61)","▲28玉","△85歩","▲77角","△54歩","▲38銀","△33角|穴熊を目指す。三間には急戦より持久戦が指しやすい。","▲58金(69)","△22玉","▲56歩","△12香","▲46歩","△11玉","▲36歩","△22銀(31)","▲47金(58)","△31金(41)|三間相手でも穴熊。7筋の歩交換（▲75歩）は許してよい。"]},{"id":"f05w","lv":2,"cat":"kumi","side":"w","title":"超速△73銀（対ゴキゲン中飛車）【後手番】","desc":"将棋ウォーズで多い中飛車への切り札。右銀を一直線に6四へ。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲76歩","△84歩","▲56歩|ゴキゲン中飛車の出だし。","△85歩","▲58飛","△62銀|超速の第一歩。","▲55歩","△42玉|玉を少し囲ってから銀を進める。","▲48玉","△74歩","▲78銀","△73銀|これが「超速△73銀」。次の△64銀が速い。","▲77銀|先手は銀を上がって5筋を守る準備。","△64銀|銀が6四に出て、△75歩や△55銀を狙う。中飛車の5筋の歩を目標にする。","▲66銀|先手は銀を出て受ける。（▲66銀が間に合わないと△55銀で5筋の歩を取られる）","△32玉","▲38玉","△52金(61)|舟囲いで守りを固めてから戦う。"]},{"id":"f06w","lv":2,"cat":"kumi","side":"w","title":"対向かい飛車の駒組【後手番】","desc":"向かい飛車は8筋で飛車がぶつかる。8筋は飛車1枚で受け、焦らず穴熊へ。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲76歩","△84歩","▲66歩","△62銀","▲77角|向かい飛車の準備で角が上がった。","△42玉","▲88飛|向かい飛車。8筋で飛車同士が向かい合う。","△32玉","▲48玉","△52金(61)","▲38玉","△54歩","▲28玉","△33角|穴熊を目指す。向かい飛車は▲86歩からの飛車交換が狙いだが、82飛がいるので8筋は受かっている。","▲38銀","△22玉","▲58金(69)","△12香","▲78銀","△11玉|穴熊に潜る。向かい飛車が▲86歩と突いてきても、飛車・角・銀で8筋はしっかり受かっている。"]},{"id":"f07w","lv":4,"cat":"seme","side":"w","title":"エルモ急戦の攻め方【後手番】","desc":"64銀・73桂の攻撃形から7筋・6筋で仕掛ける。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩 △34歩 ▲76歩 △84歩 ▲66歩 △62銀 ▲68飛 △42玉 ▲48玉 △32玉 ▲38玉 △52金(61) ▲28玉 △42銀 ▲38銀 △31金 ▲58金(69) △54歩 ▲77角 △53銀(62) ▲56歩 △85歩 ▲46歩 △64銀 ▲78銀","line":["△74歩|桂を73に跳ねる準備。","▲67銀(78)","△73桂|銀と桂の攻撃形が完成。","▲36歩","△75歩|7筋の歩をぶつけて仕掛け。","▲同歩","△同銀|銀で取って前進。次は△86歩や△76銀で角を攻める。","▲78飛|先手は飛車を7筋に回して受ける。","△86歩|飛車先も突き捨て、77角の頭を狙う。","▲同歩","△同銀|8筋と7筋から一気に攻める。▲同角なら△同飛で銀と角の交換（駒得）。"]},{"id":"a01w","lv":3,"cat":"kumi","side":"w","title":"角換わり棒銀の駒組【後手番】","desc":"一番シンプルな攻め。銀をまっすぐ前に出し、8筋・9筋を突破する。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲16歩 △34歩 ▲26歩 △84歩 ▲78金 △32金 ▲25歩 △33角 ▲76歩 △42銀 ▲33角成 △同銀 ▲88銀","line":["△72銀|棒銀は右銀を72→83→84と真っすぐ進める。","▲48銀","△85歩|飛車先を伸ばして銀の通り道（84）を空ける。","▲77銀","△83銀","▲46歩","△84銀|銀が8筋の歩の後ろに立った。","▲96歩","△94歩|端の歩を受ける。棒銀は9筋を攻めに使うので大事。","▲47銀","△95歩|端歩を突き捨てる！棒銀の基本の仕掛け。","▲同歩","△同銀|銀が前進。次の△86歩、△96歩が狙い。","▲同香","△同香|銀と香の交換だが、香と持ち駒の銀で端を攻める。"]},{"id":"a02w","lv":4,"cat":"kumi","side":"w","title":"角換わり早繰り銀【後手番】","desc":"右銀を73→64→75と繰り出す攻め。先手の腰掛け銀に有効。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩 △34歩 ▲26歩 △84歩 ▲78金 △32金 ▲25歩 △33角 ▲76歩 △42銀 ▲33角成 △同銀 ▲88銀","line":["△62銀|早繰り銀も右銀を上げるところから。","▲48銀","△85歩","▲77銀","△74歩|73に銀を上がる道を作る。","▲46歩","△73銀|早繰り銀の第一歩。","▲47銀","△42玉|仕掛ける前に玉を51から逃がしておく。51に玉がいると、8筋で戦ったとき▲95角の王手飛車がある。","▲68玉","△64銀|銀が6四へ。次は7筋で銀をぶつける。","▲56銀","△75歩|7筋の歩をぶつける。銀交換や7筋突破を狙う。","▲同歩","△同銀|銀が75まで進出。持ち駒に歩も1枚入った。","▲76歩|先手は歩を打って銀を追い返す。","△84銀/△64銀|歩で取られる前に銀を引く。（ここで△86歩と攻めると▲75歩で銀を取られる）△84銀なら8筋の攻めに加わり、△64銀なら出直してもう一度7筋を狙う。"]},{"id":"a03w","lv":3,"cat":"kumi","side":"w","title":"角換わり腰掛け銀の駒組（6二金・8一飛型）【後手番】","desc":"プロで最も指される現代の形。飛車を81に引き、角の打ち込みの隙をなくす。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩 △34歩 ▲26歩 △84歩 ▲78金 △32金 ▲25歩 △33角 ▲76歩 △42銀 ▲33角成 △同銀 ▲88銀 △62銀 ▲77銀 △64歩 ▲48銀 △63銀 ▲46歩 △74歩 ▲47銀","line":["△54銀|腰掛け銀。","▲56銀|先手も腰掛け銀（先後同型）。","△42玉|玉を少し左へ。","▲68玉","△73桂|桂を跳ねて攻めの準備。","▲36歩","△62金(61)|現代の「6二金・8一飛型」。角の打ち込みに強いバランス型。","▲37桂","△81飛|飛車を81に引く。△82飛のままだと▲91角などの打ち込みが生じやすい。","▲48金(49)|先手も同じ「4八金・2九飛型」を目指す。","△85歩|飛車先を伸ばす。","▲66歩","△94歩|端歩を突いて準備完了。ここから△65歩の仕掛けを狙う。","▲29飛|先手も飛車を引いて先後同型。"]},{"id":"a04w","lv":4,"cat":"seme","side":"w","title":"相掛かり棒銀【後手番】","desc":"相掛かりでも棒銀は有力。引き飛車＋棒銀で8筋を集中攻撃。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲16歩 △84歩 ▲26歩 △85歩 ▲25歩 △32金 ▲78金 △86歩 ▲同歩 △同飛 ▲87歩 △82飛 ▲24歩 △同歩 ▲同飛 △23歩 ▲28飛","line":["△72銀|引き飛車から棒銀へ。","▲38銀","△83銀","▲76歩","△84銀|8筋の歩がないので銀がスムーズに進む。","▲46歩","△94歩|端歩を突いておくと、銀が95に出る道もできる。","▲96歩","△85銀|次の△86歩（歩を打つ）からの銀交換・8筋突破が狙い。","▲47銀","△86歩|持ち駒の歩を打って銀を前進させる。","▲同歩","△同銀|銀が86まで来た。▲87歩なら△77銀成や△95銀など、攻めが続く。"]},{"id":"a05w","lv":3,"cat":"kumi","side":"w","title":"相掛かり 浮き飛車から△73銀【後手番】","desc":"△84飛の浮き飛車は7筋・8筋の両方を見る現代的な形。右銀を73に上げてバランスよく構える。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲16歩 △84歩 ▲26歩 △85歩 ▲25歩 △32金 ▲78金 △86歩 ▲同歩 △同飛 ▲87歩","line":["△84飛|浮き飛車。飛車の横利きが24まで届くので、先手は▲24歩からの交換がしにくくなる。","▲38銀","△72銀|右銀を上げる。","▲26飛|先手も浮き飛車。","△74歩|73に銀を上がる道を作る。浮き飛車と相性がよい。","▲96歩","△94歩|端歩は受けておくのが無難。","▲76歩","△73銀|銀が73に。次は△64銀や△75歩で攻めの形を作る。"]},{"id":"t01w","lv":2,"cat":"taisaku","side":"w","title":"8筋を受けない相手には飛車先交換【後手番】","desc":"△85歩に▲77角と受けずに駒組みしてくる相手には、飛車先交換で1歩得する。ウォーズの級位者戦でよくある。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲76歩","△84歩","▲66歩","△85歩|次の△86歩が狙い。","▲68飛|8筋を受けずに四間飛車に振った。","△86歩|すかさず飛車先交換。","▲同歩","△同飛","▲78金|金で87の地点を守る。（すぐ▲87歩は△87飛成がある）","△76飛/△82飛|△76飛と横に動いて歩を取るのが一番得。△82飛と引いても飛車先交換の得は残る。"]},{"id":"b08w","lv":1,"cat":"kumi","side":"w","title":"雁木囲いを組む【後手番】","desc":"AIの影響で復活した、ウォーズでも人気の囲い。角道を止めて、銀2枚を43・53に並べる。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲26歩","△44歩|角道を止めるのが雁木の出発点。角交換を避けて、じっくり組める。","▲76歩","△42銀|左銀を上げる。","▲25歩","△33角|▲24歩からの角頭攻めを受ける。","▲48銀","△43銀|銀を43へ。雁木の1枚目の銀。","▲68玉","△62銀|右銀も上げる。","▲78玉","△54歩|5筋を突いて、53に銀が上がる場所を作る。","▲58金(69)","△53銀(62)|右銀を53へ。43・53に銀が横に並ぶのが雁木の形。","▲77角","△32金|角の横に金を置き、角頭を守る。","▲88玉","△52金(61)|右の金も寄せる。","▲36歩","△41玉|玉を41へ。これで雁木囲いの完成。銀2枚が前に出ているので、上からの攻めに強い。"]},{"id":"b09w","lv":1,"cat":"kumi","side":"w","title":"金矢倉を組む【後手番】","desc":"相居飛車の伝統的な囲い。金銀3枚で玉を守る。手順が長いので、指が覚えるまで反復。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲26歩","△42銀|矢倉は左銀を42→33と上げるところから。","▲76歩","△44歩|角道を止める。","▲48銀","△54歩","▲56歩","△62銀","▲68銀","△52金(61)","▲78金","△32金|左の金を32へ。","▲69玉","△41玉","▲58金(49)","△43金(52)|右の金を43へ斜めに上がる。","▲57銀(68)","△33銀|銀を33へ。金銀3枚の矢倉の形ができた。","▲79角","△31角|角を31に引く。","▲66歩","△42角|角を42へ移して、31を玉の通り道として空ける。","▲36歩","△31玉","▲37桂","△22玉|玉が22に入って金矢倉の完成（入城）。22玉・33銀・32金・43金が基本形。"]},{"id":"f08w","lv":2,"cat":"kumi","side":"w","title":"左美濃を組む（対四間飛車）【後手番】","desc":"穴熊より早く組めて、上からの攻めにも強い囲い。振り飛車の美濃囲いを左右反対にした形。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲76歩","△84歩","▲66歩","△62銀","▲68飛","△42玉","▲48玉","△32玉","▲38玉","△52金(61)|右の金を寄せる。","▲28玉","△33角|角を上がって22を空ける。","▲38銀","△22玉|玉を22へ。","▲58金(69)","△32銀(31)|銀を32へ上がって左美濃の完成。四間飛車党のあなたには見慣れた美濃の形を、反対側で使う。","▲78銀","△54歩|5筋を突いて右銀の活用（53銀）に備える。","▲56歩","△53銀(62)|右銀を中央へ。左美濃は組むのが早い分、攻めの準備に手をかけられる。"]},{"id":"f09w","lv":2,"cat":"kumi","side":"w","title":"対ゴキゲン中飛車の居飛車穴熊【後手番】","desc":"中飛車には超速だけでなく穴熊も有力。5筋の位を取られても、堅さで勝負する。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲76歩","△84歩","▲56歩|中飛車の出だし。","△62銀","▲58飛","△42玉","▲55歩|5筋の位を取ってきた。","△32玉","▲48玉","△33角|角を上がって穴熊を目指す。55の歩があるので角交換は起きにくい。","▲38玉","△22玉","▲28玉","△12香","▲38銀","△11玉","▲78銀","△22銀(31)","▲66歩","△31金(41)|中飛車相手でも穴熊完成。5筋で戦いになっても、玉が遠いので怖くない。"]},{"id":"a06w","lv":3,"cat":"kumi","side":"w","title":"横歩取りの基本手順【後手番】","desc":"相掛かりで先手が7六の歩を守らないと、飛車で歩を取れる。横歩取りは激しいので、基本手順を覚えておく。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩","line":["△34歩","▲76歩","△84歩","▲26歩","△85歩","▲25歩","△32金|角の頭を守る。","▲78金","△86歩|飛車先交換。","▲同歩","△同飛","▲24歩|先手も飛車先交換。","△同歩","▲同飛","△76飛|7六の歩を取る。これが「横歩取り」。1歩得になる。","▲77角|角を上がって、飛車の利きを止める。","△74飛|飛車を74へ引く。△76飛のままだと角に狙われやすい。","▲26飛|先手は飛車を引く。","△84飛|飛車を8筋に戻す。","▲88銀","△23歩|2筋に歩を打って、角の頭を固める。","▲87歩"]},{"id":"t03w","lv":3,"cat":"taisaku","side":"w","title":"浮き飛車の横利きで飛車を取る【後手番】","desc":"△84飛の浮き飛車は24まで利いている。うっかり▲24歩から飛車先交換してくる相手には、飛車をタダで取れる。（後手番は先手が1手多い。同じ形を反対側から組む）","setup":"▲96歩 △84歩 ▲26歩 △85歩 ▲25歩 △32金 ▲78金 △86歩 ▲同歩 △同飛 ▲87歩","line":["△84飛|浮き飛車。飛車の横の利きが24まで通っている。","▲24歩|先手が飛車先交換に来た。","△同歩|まずは取る。","▲同飛","△同飛|84の飛車が横に走って、24の飛車をタダで取れる。駒の利きを横にも見る習慣をつけよう。"]},{"id":"y10","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ①","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6knl/4g1g1G/4s+R1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b R2b2s2n2l8p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y68","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ⑩","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6knl/4gPg2/4ss+Bpp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GN2rbsn2l7p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y69","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ⑪","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+B1knl/4g1g1+P/4ss1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GN2rbsn2l7p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y70","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ⑫","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+P1knl/4g1g2/4ss+Rpp/4p1p2/9/1PPPP4/P8/LS7/KNG6 b Sr2bg2n2l8p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y71","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ⑬","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+B1knl/4g1g2/4ss+Ppp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b Rrbgs2n2l7p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y72","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ⑭","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+P1knl/4g1g2/4ss+Rpp/4pp3/9/1PPPP4/P8/LS7/KNG6 b SNr2bgn2l8p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y11","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ②","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+P1knl/4g1g2/4ss+Bpp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GS2rb2n2l7p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y22","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ③","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+P1knl/4g1g1+B/4ss1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GP2rbs2n2l6p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y23","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ④","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+P1knl/4g1g2/4ss1+Rp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GSr2b2n2l8p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y63","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ⑤","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+P1knl/4g1g1+R/4ss1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l7p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y64","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ⑥","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6knl/4g1g1R/4ssNpp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b R2bgsn2l8p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y65","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ⑦","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+P1knl/4g1g1+R/4ss1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b Gr2bs2n2l7p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y66","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ⑧","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+P1knl/4g1g1+R/4ss1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GSr2b2n2l7p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y67","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 1手詰 ⑨","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6knl/4gRg2/4ss+Ppp/4pp3/9/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l8p 1","mate":1,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y07","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ①","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"7nl/2+B3Sk1/5gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b G2rbgs2n2l9p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y49","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ⑩","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"7nl/5+P1k1/5gs1R/5pppp/9/1PPPP4/P8/LS7/KNG6 b GSr2bgs2n2l8p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y50","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ⑪","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"7nl/5+Rgk1/5gs2/5ppGp/9/1PPPP4/P8/LS7/KNG6 b SNr2bsn2l10p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y51","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ⑫","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"7nl/6Sk1/R4gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b 2Gr2bs2n2l9p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y52","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ⑬","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"1+R5nl/7k1/5gs2/5pppp/8N/1PPPP4/P8/LS7/KNG6 b Gr2bg2sn2l9p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y08","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ②","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"4+R2nl/6Sk1/5gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b GSr2bg2n2l9p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y21","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ③","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"7nl/1+R4Sk1/5gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b GSr2bg2n2l9p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y43","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ④","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"+B6nl/6Sk1/5gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b GP2rbgs2n2l8p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y44","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ⑤","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"7nl/5+Rgk1/5gs2/5pppp/6N2/1PPPP4/P8/LS7/KNG6 b GPr2b2sn2l8p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y45","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ⑥","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6Rnl/6Sk1/5gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b 2Gr2bs2n2l9p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y46","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ⑦","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"7nl/7k1/5gs2/3+B1pppp/8N/1PPPP4/P8/LS7/KNG6 b 2G2rb2sn2l9p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y47","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ⑧","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"7nl/5+Rgk1/5gs2/5p+Ppp/9/1PPPP4/P8/LS7/KNG6 b GNr2b2sn2l9p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y48","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 1手詰 ⑨","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"7nl/6Sk1/5gs2/5pppp/4+B4/1PPPP4/P8/LS7/KNG6 b GP2rbgs2n2l8p 1","mate":1,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y37","lv":6,"cat":"yose","side":"b","title":"銀冠を崩す 1手詰 ①","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1g5/1kS6/1s5+R1/pppp5/9/1PPPP4/P8/LS7/KNG6 b GNr2bgsn2l9p 1","mate":1,"point":"銀冠は上部に強いが、横（71・72）と端が弱い。龍で横から迫る。"},{"id":"y09","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ①","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"3+R2gnk/6gs1/7p+P/5pp1p/9/1PPPP4/P8/LS7/KNG6 b GNr2b2sn3l8p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y61","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ⑩","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"1R4+Pnk/6gsl/7p1/5pp1p/9/1PPPP4/P8/LS7/KNG6 b 2Gr2b2s2n2l8p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y62","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ⑪","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"5R+Pnk/6gsl/7p1/5pp1p/9/1PPPP4/P8/LS7/KNG6 b SNr2b2gsn2l8p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y53","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ②","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6gnk/6gs1/5+R1pS/5pp1p/9/1PPPP4/P8/LS7/KNG6 b Sr2bg2n3l9p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y54","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ③","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6gnk/6gs1/+B6pP/5pp1p/9/1PPPP4/P8/LS7/KNG6 b G2rb2s2n3l8p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y55","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ④","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6gnk/+R5gs1/7pG/5pp1p/9/1PPPP4/P8/LS7/KNG6 b 2Sr2b2n3l9p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y56","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ⑤","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6gnk/6gs1/2+R4pG/5pp1p/9/1PPPP4/P8/LS7/KNG6 b 2Sr2b2n3l9p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y57","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ⑥","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6gnk/6gs1/+R6pS/5pp1p/9/1PPPP4/P8/LS7/KNG6 b R2bgs2n3l9p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y58","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ⑦","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"3+R2gnk/6gs1/7p1/5ppNp/9/1PPPP4/P8/LS7/KNG6 b GNr2b2s3l9p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y59","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ⑧","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6gnk/6gs1/6+RpS/5pp1p/9/1PPPP4/P8/LS7/KNG6 b GPr2bs2n3l8p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y60","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 1手詰 ⑨","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"6gnk/6gs1/2R4p+P/5pp1p/9/1PPPP4/P8/LS7/KNG6 b GNr2b2sn3l8p 1","mate":1,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y31","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 1手詰 ①","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1+R5/1ksG5/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Nr2bg2sn2l9p 1","mate":1,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y32","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 1手詰 ②","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1g5/Sk7/ppRg5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Pr2bg2s2n2l8p 1","mate":1,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y33","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 1手詰 ③","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1g5/1ks+R5/p2g5/1Spp5/9/1PPPP4/P8/LS7/KNG6 b SNr2bgn2l10p 1","mate":1,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y34","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 1手詰 ④","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln7/1ks5+R/pp1g5/1Npp5/9/1PPPP4/P8/LS7/KNG6 b GPr2bg2sn2l8p 1","mate":1,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y35","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 1手詰 ⑤","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln7/1ks+R5/pp1g5/1Npp5/9/1PPPP4/P8/LS7/KNG6 b Nr2b2g2s2l9p 1","mate":1,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y36","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 1手詰 ⑥","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1g5/1ks+R5/p2g5/+P1pp5/9/1PPPP4/P8/LS7/KNG6 b Sr2bgs2n2l9p 1","mate":1,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y05","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 1手詰 ①","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"5gsnl/4g1k2/4+R2pp/5p1P1/9/1PPPP4/P8/LS7/KNG6 b Gr2b2s2n2l9p 1","mate":1,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y06","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 1手詰 ②","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"5gs1l/4g1kS1/3+R2ppp/5p3/9/1PPPP4/P8/LS7/KNG6 b Brbgs3n2l9p 1","mate":1,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y38","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 1手詰 ③","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"5gsnl/6k1+P/+R5ppp/5p3/9/1PPPP4/P8/LS7/KNG6 b Sr2b2gs2n2l8p 1","mate":1,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y39","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 1手詰 ④","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"5gsnl/4g1k2/4+R2pp/5p+P2/9/1PPPP4/P8/LS7/KNG6 b Gr2b2s2n2l9p 1","mate":1,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y40","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 1手詰 ⑤","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"5gsnl/4g1k1S/4+R1p1p/5p3/9/1PPPP4/P8/LS7/KNG6 b Gr2bs2n2l10p 1","mate":1,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y41","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 1手詰 ⑥","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"5gsnl/6k2/1+R4ppp/5p2N/9/1PPPP4/P8/LS7/KNG6 b 2Gr2b2sn2l9p 1","mate":1,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y42","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 1手詰 ⑦","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"5gs1l/4g1kS1/4+R1ppp/5p3/9/1PPPP4/P8/LS7/KNG6 b Brbgs3n2l9p 1","mate":1,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y01","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ①","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1g5/1kS1g4/pp6R/2pp5/9/1PPPP4/P8/LS7/KNG6 b Gr2b2s2n2l9p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y29","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ⑩","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1+R5/1ks1g4/pp1G5/2pp5/9/1PPPP4/P8/LS7/KNG6 b R2bg2s2n2l9p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y30","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ⑪","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln7/1ks+Rg4/pp1+P5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Nr2b2g2sn2l8p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y02","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ②","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1+R5/1ks1g4/pp1S5/2pp5/9/1PPPP4/P8/LS7/KNG6 b SNr2b2gn2l9p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y03","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ③","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln7/1ks+Pg4/pp1+R5/2pp5/9/1PPPP4/P8/LS7/KNG6 b R2b2g2s2n2l8p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y04","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ④","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1g5/1kS1g4/pp2+R4/2pp5/9/1PPPP4/P8/LS7/KNG6 b GSr2bs2n2l9p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y24","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ⑤","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1g5/1kS1g4/pp4+R2/2pp5/9/1PPPP4/P8/LS7/KNG6 b Pr2bg2s2n2l8p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y25","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ⑥","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln7/1ks+Rg4/pp1S5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Pr2b2gs2n2l8p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y26","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ⑦","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1g5/1kS+Rg4/pp7/2pp5/9/1PPPP4/P8/LS7/KNG6 b SNr2bgsn2l9p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y27","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ⑧","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1+R5/1ks1g4/pp1G5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Sr2bgs2n2l9p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y28","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 1手詰 ⑨","desc":"一手で詰ませる。まずは王手になる手を全部考えてみよう。","sfen":"ln1+R5/1ks1g4/pp1S5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Brb2gs2n2l9p 1","mate":1,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y106","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 3手詰 ①","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6knl/4g2P1/4ss+Bpp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b G2rbgs2n2l7p 1","mate":3,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y107","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 3手詰 ②","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6knl/4g3R/4ss1pp/4pppN1/9/1PPPP4/P8/LS7/KNG6 b GNr2bgs2l8p 1","mate":3,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y108","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 3手詰 ③","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6knl/4g1g1S/4s+R1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b R2bgs2n2l8p 1","mate":3,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y109","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 3手詰 ④","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6knl/4g2P+R/4ss1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b R2b2gs2n2l7p 1","mate":3,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y143","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 3手詰 ⑤","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6knl/4+R1g2/4ssGpp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b Brbgs2n2l8p 1","mate":3,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y144","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 3手詰 ⑥","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"4S1knl/4g1g2/5s+Rpp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GPr2bs2n2l7p 1","mate":3,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y145","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 3手詰 ⑦","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6knl/4g2R1/4ssPpp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GNr2bgsn2l7p 1","mate":3,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y146","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 3手詰 ⑧","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6knl/4+R1g1G/4ss1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b Sr2bg2n2l8p 1","mate":3,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y147","lv":6,"cat":"yose","side":"b","title":"雁木を崩す 3手詰 ⑨","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6knl/4g1g2/4Ss+Rpp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GPr2bs2n2l7p 1","mate":3,"point":"雁木は41・42の横が薄い。龍・飛車で横から、金で上から挟み撃ちにする。"},{"id":"y17","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ①","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/+R5gkS/5gs2/5p1pp/9/1PPPP4/P8/LS7/KNG6 b GSr2b2n2l10p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y102","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑩","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/3R2gkS/5gs2/5ppp1/9/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l10p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y103","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑪","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6Rnl/5+P1k1/5gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b 2Gr2b2s2n2l8p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y104","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑫","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/5+Pgk1/5+Rs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b Gr2bg2s2n2l8p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y105","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑬","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/5Rgk1/5gs2/5pppp/6N2/1PPPP4/P8/LS7/KNG6 b Gr2b2sn2l9p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y134","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑭","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/4+R1gkS/5gs2/6ppp/9/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l10p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y135","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑮","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/3+R2gk1/5gs2/5ppPp/9/1PPPP4/P8/LS7/KNG6 b Gr2b2s2n2l9p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y136","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑯","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/3R2gk1/5gs2/5pppp/8N/1PPPP4/P8/LS7/KNG6 b GPr2b2sn2l8p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y137","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑰","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5+B1nl/5+Pgk1/5gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b GN2rb2sn2l8p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y138","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑱","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/4R1gk1/5+Ps2/5pppp/9/1PPPP4/P8/LS7/KNG6 b GPr2bg2s2n2l7p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y139","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑲","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5+B1nl/5+Pgk1/6s2/5pppp/9/1PPPP4/P8/LS7/KNG6 b GN2rbg2sn2l8p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y18","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ②","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/4+R1gk1/5gs2/5p1pp/6N2/1PPPP4/P8/LS7/KNG6 b Gr2b2sn2l10p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y140","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑳","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"2R4nl/6gk1/5gs1N/5pp1p/9/1PPPP4/P8/LS7/KNG6 b SNr2bgs2l10p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y141","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 21","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5+R1n1/6gk1/5gs1N/5pppp/9/1PPPP4/P8/LS7/KNG6 b R2bg2sn3l9p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y19","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ③","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/2R3gk1/5gs2/5pppS/9/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l10p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y20","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ④","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6Rnl/5+Pgk1/5gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b Gr2b2s2n2l8p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y74","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑤","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/1+R4gk1/6s2/5pppp/6N2/1PPPP4/P8/LS7/KNG6 b GNr2bg2s2l9p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y98","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑥","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5+R1nl/5Ggk1/5gs2/5p1pp/9/1PPPP4/P8/LS7/KNG6 b SNr2bsn2l10p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y99","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑦","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7n1/3+R2gkS/5gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b GSr2b2n3l9p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y100","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑧","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"7nl/R5gk1/5gs2/5pppp/6N2/1PPPP4/P8/LS7/KNG6 b GSr2bsn2l9p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y101","lv":6,"cat":"yose","side":"b","title":"金矢倉を崩す 3手詰 ⑨","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5+B1nl/5Ggk1/5gs2/5p1pp/9/1PPPP4/P8/LS7/KNG6 b SN2rbsn2l10p 1","mate":3,"point":"矢倉は「頭（23）」が最大の急所。上から金を打つ「頭金」が寄せの基本形。"},{"id":"y142","lv":6,"cat":"yose","side":"b","title":"穴熊を崩す 3手詰 ①","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"R5g1k/6gsl/7pN/5pp1p/9/1PPPP4/P8/LS7/KNG6 b GSr2bs2n2l9p 1","mate":3,"point":"穴熊は12・21の地点が急所。と金や金で玉の頭を押さえると一気に寄る。"},{"id":"y14","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ①","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ks+P+R4/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b GPr2bg2s2n2l7p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y118","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑩","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln2+R4/1ksS5/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Gr2bgs2n2l9p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y119","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑪","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ks+P3R1/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b GNr2bg2sn2l8p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y120","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑫","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/Sks4+R1/p2g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b GSr2b2n2l10p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y121","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑬","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"lnRg5/1k1+P5/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Gr2b3s2n2l8p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y122","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑭","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1ks1+R4/p2g5/2pp5/2N6/1PPPP4/P8/LS7/KNG6 b GSr2bsn2l10p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y123","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑮","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ks+P+R4/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Sr2b2gs2n2l8p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y124","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑯","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"lnRg5/1k1+P5/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b GNr2b3sn2l8p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y125","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑰","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ks+P2R2/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b GNr2bg2sn2l8p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y15","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ②","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ksG3+R1/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b SNr2bgsn2l9p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y84","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ③","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ks+P3R1/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Nr2b2g2sn2l8p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y85","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ④","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1ks2+R3/p2g5/2pp5/N8/1PPPP4/P8/LS7/KNG6 b GSr2bsn2l10p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y86","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑤","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ks+P3R1/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b R2b2g2s2n2l8p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y87","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑥","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ks+P3+R1/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b SNr2b2gsn2l8p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y88","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑦","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln4+R2/1ks6/pp1g5/1Spp5/9/1PPPP4/P8/LS7/KNG6 b GSr2bg2n2l9p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y89","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑧","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln6+R/1ks6/pp1g5/1Spp5/9/1PPPP4/P8/LS7/KNG6 b GSr2bg2n2l9p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y90","lv":6,"cat":"yose","side":"b","title":"高美濃を崩す 3手詰 ⑨","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ksSR4/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b GSr2bg2n2l9p 1","mate":3,"point":"高美濃は上部に強いが、72の地点と玉の真横が薄い。龍の利きを生かして72に駒を打ち込む筋を覚える。"},{"id":"y16","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ①","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6snl/4g1k1G/3+R2ppp/5p3/9/1PPPP4/P8/LS7/KNG6 b Pr2bg2s2n2l8p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y127","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑩","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5gsn1/4g1k2/6ppp/3+B1p3/6N2/1PPPP4/P8/LS7/KNG6 b GN2rb2s3l9p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y128","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑪","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5gsnl/+R3g1k2/6p1p/5p+P2/9/1PPPP4/P8/LS7/KNG6 b 2Sr2bg2n2l9p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y129","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑫","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5gsnl/4g1kS1/1R5pp/5p3/9/1PPPP4/P8/LS7/KNG6 b SNr2bgn2l10p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y130","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑬","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5gsnl/4g1kS1/4+R2pp/5p3/9/1PPPP4/P8/LS7/KNG6 b SNr2bgn2l10p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y131","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑭","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6snl/3+Rg1k1+P/6ppp/5p3/9/1PPPP4/P8/LS7/KNG6 b Sr2b2gs2n2l8p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y132","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑮","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5gsnl/4g1kS1/5R1pp/5p3/9/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l10p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y133","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑯","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5gsnl/6k2/6ppp/5p+P+B1/9/1PPPP4/P8/LS7/KNG6 b G2rbg2s2n2l8p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y91","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ②","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6snl/R3g1k2/6ppp/5p2N/9/1PPPP4/P8/LS7/KNG6 b GSr2bgsn2l9p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y92","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ③","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6snl/+R3g1k1+P/6ppp/5p3/9/1PPPP4/P8/LS7/KNG6 b GSr2bgs2n2l8p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y93","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ④","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6snl/2R1g1k1G/6ppp/5p3/9/1PPPP4/P8/LS7/KNG6 b GNr2b2sn2l9p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y94","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑤","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5gsn1/4g1k2/4+B1ppp/5p2+P/9/1PPPP4/P8/LS7/KNG6 b GN2rb2sn3l8p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y95","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑥","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6snl/R3g1k1+P/6ppp/5p3/9/1PPPP4/P8/LS7/KNG6 b R2b2g2s2n2l8p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y96","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑦","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5gsnl/4g1kS1/4+R2pp/5p3/9/1PPPP4/P8/LS7/KNG6 b R2bgs2n2l10p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y97","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑧","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"5gsnl/4g1kS1/4+R2pp/5p3/9/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l10p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y126","lv":6,"cat":"yose","side":"b","title":"舟囲いを崩す 3手詰 ⑨","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"6snl/R3g1k2/6ppp/5p2N/9/1PPPP4/P8/LS7/KNG6 b Gr2bg2sn2l9p 1","mate":3,"point":"舟囲いは玉が浅く、上部（23・33）と横（41・52）が弱い。龍を近づけて金をはがす。"},{"id":"y12","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ①","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln3+R3/1ks1g4/pp7/1+Ppp5/9/1PPPP4/P8/LS7/KNG6 b GSr2bgs2n2l8p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y81","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑩","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ksSg3+R/pp7/2pp5/9/1PPPP4/P8/LS7/KNG6 b GSr2bg2n2l9p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y82","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑪","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1ks1g4/pp6+R/3p5/1S7/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l10p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y83","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑫","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1ks1g4/pp2+R4/1+P1p5/9/1PPPP4/P8/LS7/KNG6 b GNr2b2sn2l9p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y110","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑬","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1k2g4/ppR6/1Npp5/9/1PPPP4/P8/LS7/KNG6 b R2bg3sn2l9p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y111","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑭","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g+R4/1ks1g4/pp7/1+P1p5/9/1PPPP4/P8/LS7/KNG6 b GNr2b2sn2l9p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y112","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑮","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1k2g4/pp2+R4/+P1pp5/9/1PPPP4/P8/LS7/KNG6 b Gr2b3s2n2l8p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y113","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑯","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ks+Rg4/pp7/2pp5/3N5/1PPPP4/P8/LS7/KNG6 b GSr2bgsn2l9p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y114","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑰","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1ks+Rg4/pp7/3p5/1S7/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l10p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y115","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑱","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"l2g5/1ks+Rg4/pp7/1+Ppp5/9/1PPPP4/P8/LS7/KNG6 b GNr2b2s2n2l8p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y116","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑲","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1ks1g4/pp5R1/3p5/3+P5/1PPPP4/P8/LS7/KNG6 b GNr2b2sn2l9p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y13","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ②","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1ks1g4/pp3R3/1S1p5/9/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l10p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y117","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑳","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1ks1g4/pp1+R5/3p5/2S6/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l10p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y73","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ③","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1k2g4/pp1R5/G1pp5/9/1PPPP4/P8/LS7/KNG6 b Sr2b2s2n2l9p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y75","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ④","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g2+R2/1ksSg4/pp7/3p5/9/1PPPP4/P8/LS7/KNG6 b GNr2bsn2l10p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y76","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑤","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g+B4/1ks1g4/pp7/3p5/1S7/1PPPP4/P8/LS7/KNG6 b GN2rbsn2l10p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y77","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑥","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1k1+Pg4/pp1+R5/2pp5/9/1PPPP4/P8/LS7/KNG6 b R2bg3s2n2l8p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y78","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑦","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"l2g5/1ks+Rg4/pp7/2pp5/N8/1PPPP4/P8/LS7/KNG6 b GSr2bs2n2l9p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y79","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑧","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln7/1ks+Rg4/pp7/2pp5/2S6/1PPPP4/P8/LS7/KNG6 b GSr2bg2n2l9p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"y80","lv":6,"cat":"yose","side":"b","title":"本美濃を崩す 3手詰 ⑨","desc":"3手で詰ませる。捨て駒で玉を誘い出すのがコツ。","sfen":"ln1g5/1k2g4/pp2+R4/2pp5/N8/1PPPP4/P8/LS7/KNG6 b GPr2b3sn2l8p 1","mate":3,"point":"美濃囲いは横からの攻めに強い反面、玉の斜め上（72・83）と端が急所。龍と持ち駒を連携させて急所を突く。"},{"id":"u01","lv":5,"cat":"uke","side":"b","title":"雁木の受け：利きを足す ①","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/2PPP4/PP1SS4/+p1G1G4/LNK1+b4 b 2rbgs2n2l7p 1","uke":true,"ans":["5h6h","5h5i","9i9h"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u02","lv":5,"cat":"uke","side":"b","title":"雁木の受け：利きを足す ②","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/2P1P4/PP+rSS4/2G1G4/LNK1+p4 b r2bgs2n2l8p 1","uke":true,"ans":["5h5i","7h7g","8i7g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u03","lv":5,"cat":"uke","side":"b","title":"雁木の受け：利きを足す ③","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/3PP4/PP+rSS4/2G1G4/LNK1+p4 b r2bgs2n2l8p 1","uke":true,"ans":["5h5i","7h7g","8i7g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u04","lv":5,"cat":"uke","side":"b","title":"雁木の受け：利きを足す ④","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/2PPP4/P+r1SS4/2G1G4/LNK1+p4 b r2bgs2n2l8p 1","uke":true,"ans":["5h6h","5h5i","7h8g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u05","lv":5,"cat":"uke","side":"b","title":"矢倉の受け：玉の早逃げ ①","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/PPPP5/2SG5/1Ks3+b2/LN7 b 2rb2gs2n2l9p 1","uke":true,"ans":["8h7h","9i9h"],"point":"「玉の早逃げ八手の得」。詰めろをかけられたら、まず玉を一路安全な方へ逃げる手を考える。"},{"id":"u06","lv":5,"cat":"uke","side":"b","title":"矢倉の受け：玉の早逃げ ②","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/PPPP5/r1SG5/1K1+p5/LN7 b r2b2g2s2n2l8p 1","uke":true,"ans":["6g6h","8h9g","8i9g"],"point":"「玉の早逃げ八手の得」。詰めろをかけられたら、まず玉を一路安全な方へ逃げる手を考える。"},{"id":"u07","lv":5,"cat":"uke","side":"b","title":"矢倉の受け：玉の早逃げ ③","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/PPPP5/2SG4r/1Ks6/LN7 b r2b2gs2n2l9p 1","uke":true,"ans":["8h7h","9i9h"],"point":"「玉の早逃げ八手の得」。詰めろをかけられたら、まず玉を一路安全な方へ逃げる手を考える。"},{"id":"u08","lv":5,"cat":"uke","side":"b","title":"矢倉の受け：利きを足す ①","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/n8/PPPP5/2SG5/1K7/LN5+r1 b r2b2g2sn2l9p 1","uke":true,"ans":["9f9e"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u09","lv":5,"cat":"uke","side":"b","title":"矢倉の受け：玉の早逃げ ④","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/PPPP5/2SG5/1Ks6/LN2+r4 b r2b2gs2n2l9p 1","uke":true,"ans":["8h7h"],"point":"「玉の早逃げ八手の得」。詰めろをかけられたら、まず玉を一路安全な方へ逃げる手を考える。"},{"id":"u10","lv":5,"cat":"uke","side":"b","title":"矢倉の受け：利きを足す ②","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/PPPP5/2SG5/1Ks4+r1/LN7 b Gr2bgs2n2l9p 1","uke":true,"ans":["G*8g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u11","lv":5,"cat":"uke","side":"b","title":"矢倉の受け：利きを足す ③","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/PPPP5/2SG5/1Ks6/LNr6 b Sr2b2g2n2l9p 1","uke":true,"ans":["S*9h"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u12","lv":5,"cat":"uke","side":"b","title":"矢倉の受け：利きを足す ④","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/n8/PPPP1+b3/2SG5/1K7/LN7 b 2rb2g2sn2l9p 1","uke":true,"ans":["9f9e"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u13","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊の受け：利きを足す ①","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/P1PP5/+pP7/1SG6/KNG2+r3 b r2bg2s2n3l8p 1","uke":true,"ans":["8h9g","8i9g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u14","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊の受け：利きを足す ②","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/P1PP5/1P7/LSG6/KN+p4r1 b r2b2g2s2n2l8p 1","uke":true,"ans":["7h7i","8h7i","9h9g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u15","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊の受け：利きを足す ③","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/P1PP5/1P7/LSG6/KN+pr5 b r2b2g2s2n2l8p 1","uke":true,"ans":["7h7i","8h7i","9h9g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u16","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊の受け：利きを足す ④","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/P1PP5/sP1+r5/1SG6/KNG6 b r2bgs2n3l9p 1","uke":true,"ans":["8h9g","8i9g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u17","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊の受け：利きを足す ⑤","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/PnPP5/1P7/1SG6/KNG2+r3 b r2bg2sn3l9p 1","uke":true,"ans":["8g8f"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u18","lv":5,"cat":"uke","side":"b","title":"雁木の受け：玉の早逃げ ①","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/1nPPP4/PP1SS4/r3G4/LNK6 b r2b2gsn2l8p 1","uke":true,"ans":["5h6h","7i6i","9i9h"],"point":"「玉の早逃げ八手の得」。詰めろをかけられたら、まず玉を一路安全な方へ逃げる手を考える。"},{"id":"u19","lv":5,"cat":"uke","side":"b","title":"雁木の受け：利きを足す ⑤","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/2PPP4/PPgSS4/2G1+r4/LNK6 b r2bgs2n2l8p 1","uke":true,"ans":["6g5h","8i7g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u20","lv":5,"cat":"uke","side":"b","title":"雁木の受け：玉の早逃げ ②","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/2PPP4/PPpSS4/1r2G4/LNK6 b r2b2gs2n2l7p 1","uke":true,"ans":["5h6h","7i8h","7i6i"],"point":"「玉の早逃げ八手の得」。詰めろをかけられたら、まず玉を一路安全な方へ逃げる手を考える。"},{"id":"u21","lv":5,"cat":"uke","side":"b","title":"雁木の受け：利きを足す ⑥","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/2PPP4/PP1SS4/g1G1+r4/LNK6 b r2bgs2n2l8p 1","uke":true,"ans":["6g5h","9i9h"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u22","lv":5,"cat":"uke","side":"b","title":"雁木の受け：利きを足す ⑦","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/2PPP4/PP+rSs4/2G1G4/LNK6 b r2bgs2n2l8p 1","uke":true,"ans":["7h7g","8i7g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"u23","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊の受け：利きを足す ⑥","desc":"相手は次に詰ませる手を狙っている（詰めろ）。詰まない形にする一手を指そう。正解は1つとは限らない。","sfen":"6gnk/7sl/8p/4pppp1/9/P1PP5/nP7/LSG6/K1G5r b r2bg2s2n2l9p 1","uke":true,"ans":["8h9g","9h9g"],"point":"詰めろは「相手が駒を打ち込む地点に、自分の駒の利きを足す」のが基本。金銀を寄せる・端の駒を上げるなど、盤上の駒で受けられないか探す。"},{"id":"o01","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ①","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1PPPP4/Pb2S4/4G2R1/LN1K2b2 b Srgs2n2l7p 1","uke":true,"oute":true,"ans":["6i6h","S*7h"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o02","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ①","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPPS3/PP1gr4/2KS3R1/LN7 b 2bgs2n2l7p 1","uke":true,"oute":true,"ans":["6h6g","7h8h"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o03","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ①","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/3s5/2PPP2P1/PP1+p5/2K1GS1R1/LN7 b Sr2bg2n2l6p 1","uke":true,"oute":true,"ans":["5h6g","7h6g"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o04","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ①","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/+p1SGS4/1Ks4R1/1N7 b Pr2bg2n3l5p 1","uke":true,"oute":true,"ans":["8h7h"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o05","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ②","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/2SGS4/1K+r4R1/1N7 b 2bgs2n3l7p 1","uke":true,"oute":true,"ans":["2h7h","8h7h"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o06","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ③","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/2SGS4/1K+r4R1/1N7 b S2bg2n3l7p 1","uke":true,"oute":true,"ans":["2h7h","8h7h"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o07","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ④","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/2bGS4/1K+p4R1/LN7 b Prbg2s2n2l5p 1","uke":true,"oute":true,"ans":["8h7h"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o08","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ②","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1PPPP4/P+b2S4/4G2R1/LN1K5 b Srbgs2n2l7p 1","uke":true,"oute":true,"ans":["6i5i","S*7h"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o09","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ⑤","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/2S1S4/+pK2+b2R1/LN7 b Prb2gs2n2l5p 1","uke":true,"oute":true,"ans":["8h9h","9i9h"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o10","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ②","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/9/2PPP2P1/PP+r1+b4/2K1GS1R1/L1S6 b Pbgs3n2l6p 1","uke":true,"oute":true,"ans":["7h7g"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o11","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ⑥","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/n6P1/PPPPP4/2SGS4/1K+p4R1/LN7 b Pr2bgsn2l5p 1","uke":true,"oute":true,"ans":["2h7h","8h7h"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o12","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ⑦","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/2SGS4/1K+b4R1/L8 b rbgs3n2l7p 1","uke":true,"oute":true,"ans":["2h7h","8h7h"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o13","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ⑧","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/+p1SGS4/1KG1b2R1/1N7 b Srb2n3l6p 1","uke":true,"oute":true,"ans":["8h9g","8i9g"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o14","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ②","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPPS3/PP+b6/2K1G2R1/LN7 b rbg2s2n2l7p 1","uke":true,"oute":true,"ans":["7h7g","8i7g"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o15","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ③","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/2+r4P1/1PPPP4/P+b1SS4/4G2R1/LN1K5 b bgs2n2l7p 1","uke":true,"oute":true,"ans":["6g7h","6i5i"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o16","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ③","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPPS3/PP7/+brKSG2R1/1N7 b Gbs2n3l7p 1","uke":true,"oute":true,"ans":["7h6g","7h6i"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o17","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ④","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1PPPP4/P+p2Sb3/2G4R1/LN1K5 b Grb2s2n2l6p 1","uke":true,"oute":true,"ans":["2h5h","G*5h"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o18","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ③","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/9/2PPP2P1/PP+p6/1rK1GS1R1/LN7 b S2bgs2n2l6p 1","uke":true,"oute":true,"ans":["7h7g"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o19","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ⑤","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1PPPP4/P2SS4/+b3G2R1/LN1K+p4 b rbgs2n2l6p 1","uke":true,"oute":true,"ans":["5h5i","6i5i"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o20","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ④","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPPS3/PP+b6/2KSG2R1/L8 b Prbgs3n2l6p 1","uke":true,"oute":true,"ans":["6h7g","7h7g"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o21","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ⑤","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/5+p1P1/2PPPS3/PP1+r5/2K1G2R1/LN7 b P2bg2s2n2l5p 1","uke":true,"oute":true,"ans":["5h6g","7h6g"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o22","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ⑥","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPPS3/PP7/1+rKS1g1R1/LN7 b 2bgs2n2l7p 1","uke":true,"oute":true,"ans":["7h8h"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o23","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ⑥","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1PPPP1b2/P2SS4/1+bG4R1/LN1K5 b Prgs2n2l6p 1","uke":true,"oute":true,"ans":["6g5h","P*4g"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o24","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ⑦","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1PPPP4/P2SS4/1+b2G2R1/LN1K1+r3 b Sbg2n2l7p 1","uke":true,"oute":true,"ans":["5h5i"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o25","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ⑦","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/+b1ppp4/7P1/2PPPS3/PP+b6/2KSG2R1/L8 b rgs3n2l7p 1","uke":true,"oute":true,"ans":["6h7g","7h7g"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o26","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ④","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/3+b5/2PPP2P1/PP1+p5/2K1GS1R1/LN7 b rbg2s2n2l6p 1","uke":true,"oute":true,"ans":["5h6g","7h6g"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o27","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ⑤","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/1nppp4/9/2PPP2P1/PP1+r5/2K1GS1R1/LN7 b P2bg2sn2l6p 1","uke":true,"oute":true,"ans":["5h6g","7h6g"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o28","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ⑥","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/9/2PPP+b1P1/PP1+b5/2K1GS1R1/LN7 b Prg2s2n2l6p 1","uke":true,"oute":true,"ans":["5h6g","7h6g"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o29","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ⑦","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/1+pppp4/9/2PPP2P1/PP7/1+rK2S1R1/LNS6 b 2b2gs2n2l6p 1","uke":true,"oute":true,"ans":["7h8h","7i8h"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o30","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊：王手の受け ①","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/1s5P1/2PPP4/PPb1S4/L1G4R1/K1G6 b rbs3n2l7p 1","uke":true,"oute":true,"ans":["7h7g","7h8h"],"point":"穴熊は王手がかかりにくいのが長所。王手されたら、相手の駒を取って穴熊の形を保てるか考える。"},{"id":"o31","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊：王手の受け ②","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPP4/PPb1S4/L1G4R1/K1G6 b Prb2s3n2l6p 1","uke":true,"oute":true,"ans":["7h7g","7h8h"],"point":"穴熊は王手がかかりにくいのが長所。王手されたら、相手の駒を取って穴熊の形を保てるか考える。"},{"id":"o32","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊：王手の受け ③","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPP4/PP+b1S4/L1G4R1/K1G6 b rb2s3n2l7p 1","uke":true,"oute":true,"ans":["7h7g","7h8h"],"point":"穴熊は王手がかかりにくいのが長所。王手されたら、相手の駒を取って穴熊の形を保てるか考える。"},{"id":"o33","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊：王手の受け ④","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPP4/PPb1S4/L1G4R1/K1G6 b rb2s3n2l7p 1","uke":true,"oute":true,"ans":["7h7g","7h8h"],"point":"穴熊は王手がかかりにくいのが長所。王手されたら、相手の駒を取って穴熊の形を保てるか考える。"},{"id":"o34","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊：王手の受け ⑤","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/1b5P1/2PPP4/PPb1S4/L1G4R1/K1G6 b Pr2s3n2l6p 1","uke":true,"oute":true,"ans":["7h7g","7h8h"],"point":"穴熊は王手がかかりにくいのが長所。王手されたら、相手の駒を取って穴熊の形を保てるか考える。"},{"id":"o35","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊：王手の受け ⑥","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1bPPP4/PPb1S4/L1G4R1/K1G6 b r2s3n2l7p 1","uke":true,"oute":true,"ans":["7h7g","7h8h"],"point":"穴熊は王手がかかりにくいのが長所。王手されたら、相手の駒を取って穴熊の形を保てるか考える。"},{"id":"o36","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ⑨","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/+p1SGS4/1KG1+p2R1/1N7 b r2bs2n3l5p 1","uke":true,"oute":true,"ans":["8h9g","8i9g"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o37","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ⑧","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1nPPPS3/PP2+p4/2KS3R1/LN7 b Sr2b2gn2l6p 1","uke":true,"oute":true,"ans":["8g8f","7h7g"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o38","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ⑩","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/b1ppp4/7P1/PPPPP4/2SGS4/1K+b4R1/LN7 b Prgs2n2l6p 1","uke":true,"oute":true,"ans":["2h7h","8h7h"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o39","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ⑪","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/s1SGS4/1K1+b3R1/1N7 b rbg2n3l7p 1","uke":true,"oute":true,"ans":["8h9g"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o40","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ⑫","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/2SGS4/+pK2+p2R1/LN7 b Pr2bgs2n2l4p 1","uke":true,"oute":true,"ans":["8h9h","9i9h"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o41","lv":5,"cat":"uke","side":"b","title":"矢倉：王手の受け ⑬","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/PPPPP4/2S1S4/1K+b4R1/LN7 b Prb2gs2n2l6p 1","uke":true,"oute":true,"ans":["2h7h","8h7h"],"point":"矢倉の王手は「逃げる方向」が大事。上へ逃げると捕まりやすい。"},{"id":"o42","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ⑧","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1PPPP4/P+b1SS4/4G2R1/LN1K5 b rbgs2n2l7p 1","uke":true,"oute":true,"ans":["6g7h","6i5i"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o43","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ⑨","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/2s4P1/2PPPS3/PPg6/2K1G2R1/LN7 b r2bs2n2l7p 1","uke":true,"oute":true,"ans":["7h7g","8i7g"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o44","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ⑨","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1PPPP1g2/P+b1SS4/4G2R1/LN1K5 b rbs2n2l7p 1","uke":true,"oute":true,"ans":["6g7h"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o45","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ⑧","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/9/2PPP2P1/PP1+r5/2K1GS1R1/LN7 b P2bg2s2n2l6p 1","uke":true,"oute":true,"ans":["5h6g","7h6g"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o46","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ⑨","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/3b5/2PPP2P1/PP7/1+rK1GS1R1/L1S6 b bgs3n2l7p 1","uke":true,"oute":true,"ans":["7h8h","7i8h"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o47","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ⑩","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/1bppp4/9/2PPP2P1/PP7/2K+pGS1R1/LN7 b rbg2s2n2l6p 1","uke":true,"oute":true,"ans":["5h6h","7h6h"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o48","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ⑩","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPPS3/PP7/1+bKS1+r1R1/LNG6 b bgs2n2l7p 1","uke":true,"oute":true,"ans":["7h8h","7i8h"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o49","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ⑪","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPPS3/PP3+p3/1+pKSG2R1/LN7 b Pr2bgs2n2l4p 1","uke":true,"oute":true,"ans":["7h7g","7h8h"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o50","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ⑫","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/3n3P1/2PPPS3/PP7/1rKSG2R1/1N7 b 2bgsn3l7p 1","uke":true,"oute":true,"ans":["7h8h","7h6i"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o51","lv":5,"cat":"uke","side":"b","title":"エルモ囲い：王手の受け ⑬","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPPS3/PPg6/2K1G2R1/LN7 b r2b2s2n2l7p 1","uke":true,"oute":true,"ans":["7h7g","8i7g"],"point":"エルモ囲いは横に強い。王手には金銀の連結を崩さない応手を選ぶ。"},{"id":"o52","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ⑪","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/9/2PPP2P1/PP+p6/2K1GS1R1/LN7 b Pr2bg2s2n2l5p 1","uke":true,"oute":true,"ans":["7h7g","8i7g"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o53","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ⑫","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/9/2PPP2P1/PP1+b5/r1K1GS1R1/LN7 b bg2s2n2l7p 1","uke":true,"oute":true,"ans":["7h6g"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o54","lv":5,"cat":"uke","side":"b","title":"舟囲い：王手の受け ⑬","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp+b3/9/2PPP2P1/PP1+r5/2K1GS1R1/LN7 b bg2s2n2l7p 1","uke":true,"oute":true,"ans":["5h6g","7h6g"],"point":"舟囲いは玉の上が薄い。王手されたら「取れる駒は取る」「広い方へ逃げる」を順に確認する。"},{"id":"o55","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ⑩","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/2n4P1/1PPPP4/P2SS4/2G+p3R1/LN1K5 b Pr2bgsn2l5p 1","uke":true,"oute":true,"ans":["5g6h","6i6h"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o56","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ⑪","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/3b3P1/1PPPP4/P+b1SS4/4G2R1/LN1K5 b Prgs2n2l6p 1","uke":true,"oute":true,"ans":["6g7h","6i5i"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o57","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ⑫","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1PPPP4/Ps1SS4/2G+p3R1/LN1K5 b Pr2bg2n2l5p 1","uke":true,"oute":true,"ans":["5g6h","6i6h"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o58","lv":5,"cat":"uke","side":"b","title":"雁木：王手の受け ⑬","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1PPPP4/P2SS4/g3G2R1/LN1K+b4 b Srb2n2l7p 1","uke":true,"oute":true,"ans":["5h5i","6i5i"],"point":"雁木は玉が中央寄りで広い。逃げる方向を間違えなければ粘れる。"},{"id":"o59","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊：王手の受け ⑦","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/b6P1/2PPP4/PPb1S4/L1G4R1/K1G6 b r2s3n2l7p 1","uke":true,"oute":true,"ans":["7h7g","7h8h"],"point":"穴熊は王手がかかりにくいのが長所。王手されたら、相手の駒を取って穴熊の形を保てるか考える。"},{"id":"o60","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊：王手の受け ⑧","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/1sPPP4/PPb1S4/L1G4R1/K1G6 b Prbs3n2l6p 1","uke":true,"oute":true,"ans":["7h7g","7h8h"],"point":"穴熊は王手がかかりにくいのが長所。王手されたら、相手の駒を取って穴熊の形を保てるか考える。"},{"id":"o61","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊：王手の受け ⑨","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/7P1/2PPP4/PP+b1S4/L1G+r3R1/KN7 b bg2s2n2l7p 1","uke":true,"oute":true,"ans":["8i7g"],"point":"穴熊は王手がかかりにくいのが長所。王手されたら、相手の駒を取って穴熊の形を保てるか考える。"},{"id":"o62","lv":5,"cat":"uke","side":"b","title":"居飛車穴熊：王手の受け ⑩","desc":"王手をかけられた。詰まされない応手（逃げる・取る・合駒）を選ぼう。王手への応手を間違えるのが一番多い負け方。","sfen":"ln1g5/1ks1g4/pp7/2ppp4/3+p3P1/2PPP4/PP+b1S4/L1G4R1/K1G6 b Prb2s3n2l5p 1","uke":true,"oute":true,"ans":["7h7g","7h8h"],"point":"穴熊は王手がかかりにくいのが長所。王手されたら、相手の駒を取って穴熊の形を保てるか考える。"},{"id":"z01","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"本美濃に詰めろをかける ①","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1gR4/1ks1g4/pp1+P5/2pp5/9/1PPPP4/P8/LS7/KNG6 b GPr2b2s2n2l7p 1","ans":["5a6a+"],"point":"美濃囲いは玉の上（72・83）と、金の横が弱点。持ち駒の金銀で玉頭を押さえる形を探す。"},{"id":"z02","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"本美濃に詰めろをかける ②","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g1R3/1ks6/pp1+P5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Nr2b2g2sn2l8p 1","ans":["4a6a+"],"point":"美濃囲いは玉の上（72・83）と、金の横が弱点。持ち駒の金銀で玉頭を押さえる形を探す。"},{"id":"z03","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"本美濃に詰めろをかける ③","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"l2g5/1ks+Rg4/pp1S5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Pr2bgs3n2l8p 1","ans":["6b6a","6c7b"],"point":"美濃囲いは玉の上（72・83）と、金の横が弱点。持ち駒の金銀で玉頭を押さえる形を探す。"},{"id":"z04","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"本美濃に詰めろをかける ④","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1ks1g4/pp1S5/1+Rp6/9/1PPPP4/P8/LS7/KNG6 b Gr2bs2n2l10p 1","ans":["6c7b"],"point":"美濃囲いは玉の上（72・83）と、金の横が弱点。持ち駒の金銀で玉頭を押さえる形を探す。"},{"id":"z05","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"本美濃に詰めろをかける ⑤","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g4R/1ks1g4/p8/1Npp5/9/1PPPP4/P8/LS7/KNG6 b Gr2b2sn2l10p 1","ans":["1a6a+"],"point":"美濃囲いは玉の上（72・83）と、金の横が弱点。持ち駒の金銀で玉頭を押さえる形を探す。"},{"id":"z06","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"本美濃に詰めろをかける ⑥","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g1R3/1ks1g4/pp1+P5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Gr2b2s2n2l8p 1","ans":["4a6a+"],"point":"美濃囲いは玉の上（72・83）と、金の横が弱点。持ち駒の金銀で玉頭を押さえる形を探す。"},{"id":"z07","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"本美濃に詰めろをかける ⑦","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1ks6/pp7/1Npp5/7B1/1PPPP4/P8/LS7/KNG6 b BG2rg2sn2l9p 1","ans":["2e6a+","2e6a"],"point":"美濃囲いは玉の上（72・83）と、金の横が弱点。持ち駒の金銀で玉頭を押さえる形を探す。"},{"id":"z08","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"本美濃に詰めろをかける ⑧","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1k2g4/pp7/S1pp5/4R4/1PPPP4/P8/LS7/KNG6 b Sr2bgs2n2l9p 1","ans":["5e5c+","S*7b"],"point":"美濃囲いは玉の上（72・83）と、金の横が弱点。持ち駒の金銀で玉頭を押さえる形を探す。"},{"id":"z09","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"高美濃に詰めろをかける ①","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1k7/pp1g2+B2/1Spp5/9/1PPPP4/P8/LS7/KNG6 b Rrbg2s2n2l9p 1","ans":["R*7c"],"point":"高美濃は金が63に上がった分、52・62の地点が薄い。龍や飛車の横からの利きと組み合わせる。"},{"id":"z10","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"高美濃に詰めろをかける ②","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln7/1ks2R3/pp1g5/2pp5/9/1PPPP4/P8/LS7/KNG6 b Brb2g2s2n2l9p 1","ans":["B*6a"],"point":"高美濃は金が63に上がった分、52・62の地点が薄い。龍や飛車の横からの利きと組み合わせる。"},{"id":"z11","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"高美濃に詰めろをかける ③","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1k7/pp1g5/+P1pp5/+R8/1PPPP4/P8/LS7/KNG6 b SNr2bg2sn2l8p 1","ans":["S*7b"],"point":"高美濃は金が63に上がった分、52・62の地点が薄い。龍や飛車の横からの利きと組み合わせる。"},{"id":"z12","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"高美濃に詰めろをかける ④","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1k7/pp1g5/2pp5/1R7/1PPPP4/P8/LS7/KNG6 b GSr2b2s2n2l9p 1","ans":["S*7b"],"point":"高美濃は金が63に上がった分、52・62の地点が薄い。龍や飛車の横からの利きと組み合わせる。"},{"id":"z13","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"高美濃に詰めろをかける ⑤","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1k7/pp1g5/1+Ppp5/7B1/1PPPP4/P8/LS7/KNG6 b SN2rbg2sn2l8p 1","ans":["2e6a+","2e6a","S*7b"],"point":"高美濃は金が63に上がった分、52・62の地点が薄い。龍や飛車の横からの利きと組み合わせる。"},{"id":"z14","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"高美濃に詰めろをかける ⑥","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1+R5/1ks6/pp1g5/2pp5/G8/1PPPP4/P8/LS7/KNG6 b SNr2bgsn2l9p 1","ans":["N*8d"],"point":"高美濃は金が63に上がった分、52・62の地点が薄い。龍や飛車の横からの利きと組み合わせる。"},{"id":"z15","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"高美濃に詰めろをかける ⑦","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1ks6/p2g5/1Npp5/7+B1/1PPPP4/P8/LS7/KNG6 b B2rg2sn2l10p 1","ans":["2e6a"],"point":"高美濃は金が63に上がった分、52・62の地点が薄い。龍や飛車の横からの利きと組み合わせる。"},{"id":"z16","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"高美濃に詰めろをかける ⑧","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g1+R3/1ks6/pp1g5/1Npp5/9/1PPPP4/P8/LS7/KNG6 b RG2b2sn2l9p 1","ans":["4a6a"],"point":"高美濃は金が63に上がった分、52・62の地点が薄い。龍や飛車の横からの利きと組み合わせる。"},{"id":"z17","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"舟囲いに詰めろをかける ①","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"5g1nl/4g1k2/4+P1ppp/4Rp3/9/1PPPP4/P8/LS7/KNG6 b GNr2b3sn2l8p 1","ans":["N*1d","N*3d"],"point":"舟囲いは玉の上と横が薄い。32玉の頭（22・23）や、41金の横を狙う。"},{"id":"z18","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"舟囲いに詰めろをかける ②","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"5gsnl/4g1k2/3+B2ppp/5pN2/9/1PPPP4/P8/LS7/KNG6 b GS2rbsn2l9p 1","ans":["6c5b"],"point":"舟囲いは玉の上と横が薄い。32玉の頭（22・23）や、41金の横を狙う。"},{"id":"z19","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"舟囲いに詰めろをかける ③","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"5gsnl/4g1k2/6ppp/5pS+R1/9/1PPPP4/P8/LS7/KNG6 b Nr2bgsn2l9p 1","ans":["N*5d"],"point":"舟囲いは玉の上と横が薄い。32玉の頭（22・23）や、41金の横を狙う。"},{"id":"z20","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"舟囲いに詰めろをかける ④","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6snl/4g1k2/6ppp/4+Rp3/9/1PPPP4/P8/LS7/KNG6 b BGrbg2s2n2l9p 1","ans":["B*6e","G*1b"],"point":"舟囲いは玉の上と横が薄い。32玉の頭（22・23）や、41金の横を狙う。"},{"id":"z21","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"舟囲いに詰めろをかける ⑤","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"5gsnl/6k2/6ppp/4Sp3/2+R6/1PPPP4/P8/LS7/KNG6 b SNr2b2gn2l9p 1","ans":["N*1d","N*3d"],"point":"舟囲いは玉の上と横が薄い。32玉の頭（22・23）や、41金の横を狙う。"},{"id":"z22","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"舟囲いに詰めろをかける ⑥","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"5gsnl/4g1k2/6ppp/5pS2/5B3/1PPPP4/P8/LS7/KNG6 b GP2rbs2n2l8p 1","ans":["G*5c"],"point":"舟囲いは玉の上と横が薄い。32玉の頭（22・23）や、41金の横を狙う。"},{"id":"z23","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"舟囲いに詰めろをかける ⑦","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"5gs1l/4g1k2/6ppp/3+B1p3/5N3/1PPPP4/P8/LS7/KNG6 b S2rbgs2n2l9p 1","ans":["S*2b"],"point":"舟囲いは玉の上と横が薄い。32玉の頭（22・23）や、41金の横を狙う。"},{"id":"z24","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"舟囲いに詰めろをかける ⑧","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"5gsnl/6k2/4+R1ppp/5p3/7N1/1PPPP4/P8/LS7/KNG6 b 2Gr2b2sn2l9p 1","ans":["2e1c+","G*1b"],"point":"舟囲いは玉の上と横が薄い。32玉の頭（22・23）や、41金の横を狙う。"},{"id":"z25","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"金矢倉に詰めろをかける ①","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"7nl/7k1/5gs2/3+B1pppp/8S/1PPPP4/P8/LS7/KNG6 b 2G2rbs2n2l9p 1","ans":["1e1d","1e2d"],"point":"矢倉は上からの攻めに強いので、端（1筋）と下段（21・31）から攻める。"},{"id":"z26","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"金矢倉に詰めろをかける ②","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"7nl/7k1/5gs2/5pppp/1+R6N/1PPPP4/P8/LS7/KNG6 b GPr2bg2sn2l8p 1","ans":["8e8a","P*3b"],"point":"矢倉は上からの攻めに強いので、端（1筋）と下段（21・31）から攻める。"},{"id":"z27","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"金矢倉に詰めろをかける ③","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"B6nl/7k1/5gs2/5pppp/8N/1PPPP4/P8/LS7/KNG6 b GN2rbg2s2l9p 1","ans":["9a6d+","9a6d","N*3e"],"point":"矢倉は上からの攻めに強いので、端（1筋）と下段（21・31）から攻める。"},{"id":"z28","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"金矢倉に詰めろをかける ④","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"7nl/5+B1k1/5gs2/5pppp/9/1PPPP4/P8/LS7/KNG6 b 2G2rb2s2n2l9p 1","ans":["4b4a","G*3a"],"point":"矢倉は上からの攻めに強いので、端（1筋）と下段（21・31）から攻める。"},{"id":"z29","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"金矢倉に詰めろをかける ⑤","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"7nl/7k1/5gs2/3+R1pppp/9/1PPPP4/P8/LS7/KNG6 b GSr2bgs2n2l9p 1","ans":["S*3b"],"point":"矢倉は上からの攻めに強いので、端（1筋）と下段（21・31）から攻める。"},{"id":"z30","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"金矢倉に詰めろをかける ⑥","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"3+B3nl/7k1/5gs2/5pppp/7N1/1PPPP4/P8/LS7/KNG6 b GS2rbgsn2l9p 1","ans":["S*3b"],"point":"矢倉は上からの攻めに強いので、端（1筋）と下段（21・31）から攻める。"},{"id":"z31","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"金矢倉に詰めろをかける ⑦","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"7nl/4B2k1/5gs2/5pppp/5S3/1PPPP4/P8/LS7/KNG6 b GN2rbgsn2l9p 1","ans":["5b4a+","5b4a"],"point":"矢倉は上からの攻めに強いので、端（1筋）と下段（21・31）から攻める。"},{"id":"z32","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"金矢倉に詰めろをかける ⑧","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"7nl/5+B1k1/5gs2/5pppp/5G3/1PPPP4/P8/LS7/KNG6 b GP2rb2s2n2l8p 1","ans":["4b4a","4e3d"],"point":"矢倉は上からの攻めに強いので、端（1筋）と下段（21・31）から攻める。"},{"id":"z33","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"穴熊に詰めろをかける ①","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6gnk/6gsl/4+R2pS/5pp1p/9/1PPPP4/P8/LS7/KNG6 b GSr2b2n2l9p 1","ans":["5c2c"],"point":"穴熊は王手がかかりにくい。だからこそ「王手でない詰めろ」が最強の攻め方。金銀を1枚ずつはがす。"},{"id":"z34","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"穴熊に詰めろをかける ②","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6gnk/6gsl/6+Rp1/5ppNp/9/1PPPP4/P8/LS7/KNG6 b GNr2b2s2l9p 1","ans":["3c2c","G*1c"],"point":"穴熊は王手がかかりにくい。だからこそ「王手でない詰めろ」が最強の攻め方。金銀を1枚ずつはがす。"},{"id":"z35","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"穴熊に詰めろをかける ③","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6gnk/6gsl/+B7S/5pp1p/9/1PPPP4/P8/LS7/KNG6 b RGrbs2n2l10p 1","ans":["G*2c"],"point":"穴熊は王手がかかりにくい。だからこそ「王手でない詰めろ」が最強の攻め方。金銀を1枚ずつはがす。"},{"id":"z36","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"穴熊に詰めろをかける ④","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6gnk/6gsl/7pP/1+R3pp1p/9/1PPPP4/P8/LS7/KNG6 b Nr2bg2sn2l8p 1","ans":["N*2d"],"point":"穴熊は王手がかかりにくい。だからこそ「王手でない詰めろ」が最強の攻め方。金銀を1枚ずつはがす。"},{"id":"z37","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"穴熊に詰めろをかける ⑤","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6gnk/6gsl/7p1/2R2ppNp/9/1PPPP4/P8/LS7/KNG6 b SNr2bgs2l9p 1","ans":["S*1c"],"point":"穴熊は王手がかかりにくい。だからこそ「王手でない詰めろ」が最強の攻め方。金銀を1枚ずつはがす。"},{"id":"z38","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"穴熊に詰めろをかける ⑥","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"3+B2gnk/6gsl/7+P1/5pp1p/9/1PPPP4/P8/LS7/KNG6 b G2rb2s2n2l9p 1","ans":["6a3d","G*1c"],"point":"穴熊は王手がかかりにくい。だからこそ「王手でない詰めろ」が最強の攻め方。金銀を1枚ずつはがす。"},{"id":"z39","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"穴熊に詰めろをかける ⑦","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"+R5gnk/6gsl/7pN/5pp1p/9/1PPPP4/P8/LS7/KNG6 b GPr2b2sn2l8p 1","ans":["9a3a"],"point":"穴熊は王手がかかりにくい。だからこそ「王手でない詰めろ」が最強の攻め方。金銀を1枚ずつはがす。"},{"id":"z40","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"穴熊に詰めろをかける ⑧","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"1+R4gnk/6gsl/6Np1/5p2p/9/1PPPP4/P8/LS7/KNG6 b BGrb2sn2l10p 1","ans":["8a3a"],"point":"穴熊は王手がかかりにくい。だからこそ「王手でない詰めろ」が最強の攻め方。金銀を1枚ずつはがす。"},{"id":"z41","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"雁木に詰めろをかける ①","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6knl/+B3g1g2/4s1Gpp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b S2rbs2n2l8p 1","ans":["S*4a","S*4c"],"point":"雁木は横からの攻めに弱い。龍・飛車の横の利きと、41・42の地点を狙う。"},{"id":"z42","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"雁木に詰めろをかける ②","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6knl/1R2g1g1+P/4ss1pp/4pp3/9/1PPPP4/P8/LS7/KNG6 b GPr2bs2n2l7p 1","ans":["8b5b+","P*4b"],"point":"雁木は横からの攻めに弱い。龍・飛車の横の利きと、41・42の地点を狙う。"},{"id":"z43","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"雁木に詰めろをかける ③","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6knl/4g1g2/4s1+Bpp/4pppG1/9/1PPPP4/P8/LS7/KNG6 b P2rb2s2n2l7p 1","ans":["2d2c"],"point":"雁木は横からの攻めに弱い。龍・飛車の横の利きと、41・42の地点を狙う。"},{"id":"z44","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"雁木に詰めろをかける ④","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6knl/4g1g2/4ssSpp/4ppp2/+B8/1PPPP4/P8/LS7/KNG6 b BG2r2n2l8p 1","ans":["9e5a"],"point":"雁木は横からの攻めに弱い。龍・飛車の横の利きと、41・42の地点を狙う。"},{"id":"z45","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"雁木に詰めろをかける ⑤","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6knl/4g1g2/4s+R1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GPr2b2s2n2l7p 1","ans":["G*3c","P*3c"],"point":"雁木は横からの攻めに弱い。龍・飛車の横の利きと、41・42の地点を狙う。"},{"id":"z46","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"雁木に詰めろをかける ⑥","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6knl/4g1g2/4s+B1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b GN2rb2sn2l8p 1","ans":["G*3c","N*2d"],"point":"雁木は横からの攻めに弱い。龍・飛車の横の利きと、41・42の地点を狙う。"},{"id":"z47","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"雁木に詰めろをかける ⑦","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6knl/+R3g1g1+P/4ss1pp/4ppp2/9/1PPPP4/P8/LS7/KNG6 b Brbgs2n2l7p 1","ans":["9b5b"],"point":"雁木は横からの攻めに弱い。龍・飛車の横の利きと、41・42の地点を狙う。"},{"id":"z48","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"雁木に詰めろをかける ⑧","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"6knl/4g1g2/2+B1ss+Ppp/4pp3/9/1PPPP4/P8/LS7/KNG6 b GN2rbsn2l8p 1","ans":["7c5a"],"point":"雁木は横からの攻めに弱い。龍・飛車の横の利きと、41・42の地点を狙う。"},{"id":"z49","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"銀冠に詰めろをかける ①","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1kg6/1s1SR4/pppp5/9/1PPPP4/P8/LS7/KNG6 b Pr2bgs2n2l8p 1","ans":["6c7b"],"point":"銀冠は上には強いが、71・61の下段が薄い。下から攻める詰めろを考える。"},{"id":"z50","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"銀冠に詰めろをかける ②","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1k7/1s6B/pppp5/N8/1PPPP4/P8/LS7/KNG6 b Rrb2g2sn2l9p 1","ans":["R*6c","R*7c"],"point":"銀冠は上には強いが、71・61の下段が薄い。下から攻める詰めろを考える。"},{"id":"z51","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"銀冠に詰めろをかける ③","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/Bkg6/Ns7/pppp5/9/1PPPP4/P8/LS7/KNG6 b GN2rb2s2l9p 1","ans":["N*8e"],"point":"銀冠は上には強いが、71・61の下段が薄い。下から攻める詰めろを考える。"},{"id":"z52","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"銀冠に詰めろをかける ④","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1k7/Rs7/pppp5/3+P5/1PPPP4/P8/LS7/KNG6 b Sr2b2gs2n2l8p 1","ans":["S*7b"],"point":"銀冠は上には強いが、71・61の下段が薄い。下から攻める詰めろを考える。"},{"id":"z53","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"銀冠に詰めろをかける ⑤","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1kg6/Rs1S5/pppp5/9/1PPPP4/P8/LS7/KNG6 b GSr2b2n2l9p 1","ans":["6c7b"],"point":"銀冠は上には強いが、71・61の下段が薄い。下から攻める詰めろを考える。"},{"id":"z54","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"銀冠に詰めろをかける ⑥","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1k7/1s4+R2/pppp5/9/1PPPP4/P8/LS7/KNG6 b 2Sr2b2g2n2l9p 1","ans":["S*7b"],"point":"銀冠は上には強いが、71・61の下段が薄い。下から攻める詰めろを考える。"},{"id":"z55","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"銀冠に詰めろをかける ⑦","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1kg5+R/3S5/pppp5/9/1PPPP4/P8/LS7/KNG6 b GNr2b2sn2l9p 1","ans":["6c7b"],"point":"銀冠は上には強いが、71・61の下段が薄い。下から攻める詰めろを考える。"},{"id":"z56","lv":4,"cat":"seme","side":"b","uke":true,"tsumero":true,"title":"銀冠に詰めろをかける ⑧","desc":"王手をかけずに「次に詰む形」を作る。王手より詰めろ、が寄せの基本。","sfen":"ln1g5/1kg6/N6+R1/pppp5/9/1PPPP4/P8/LS7/KNG6 b R2bg3sn2l9p 1","ans":["R*7a"],"point":"銀冠は上には強いが、71・61の下段が薄い。下から攻める詰めろを考える。"},{"id":"x01","lv":4,"cat":"seme","side":"b","title":"手筋：角と金の両取り","desc":"「相掛かり棒銀」の途中で、相手がうっかり悪手を指した場面。銀を動かす一手で角と金を同時に狙い、駒得する。","setup":"▲26歩(27) △84歩(83) ▲25歩(26) △85歩(84) ▲78金(69) △32金(41) ▲24歩(25) △同歩(23) ▲同飛(28) △23歩打 ▲28飛(24) △86歩(85) ▲同歩(87) △同飛(82) ▲87歩打 △82飛(86) ▲38銀(39) △72銀(71) ▲27銀(38) △34歩(33) ▲26銀(27) △64歩(63) ▲16歩(17) △14歩(13) ▲25銀(26) △63銀(72) ▲24歩打 △同歩(23) ▲同銀(25)","line":["△42銀(31)|相手の悪手。駒の配置をよく見て、同時に2つの駒を狙える場所を探そう。","▲23銀成(24)/▲23銀不成(24)|角と金の両取り！ 相手はどちらか一方しか守れず、もう一方の駒が取れる。","△同金(32)","▲同飛成(28)|駒を取って駒得が確定。実戦では「相手の駒が2枚並んだら両取りを探す」のが攻めの基本。"]},{"id":"x02","lv":4,"cat":"seme","side":"b","title":"手筋：飛車と角の両取り","desc":"「エルモ急戦の攻め方」の途中で、相手がうっかり悪手を指した場面。銀を動かす一手で飛車と角を同時に狙い、駒得する。","setup":"▲76歩(77) △34歩(33) ▲26歩(27) △44歩(43) ▲48銀(39) △42飛(82) ▲68玉(59) △62玉(51) ▲78玉(68) △72玉(62) ▲58金(49) △82玉(72) ▲68銀(79) △72銀(71) ▲79金(69) △52金(41) ▲56歩(57) △33角(22) ▲57銀(48) △54歩(53) ▲25歩(26) △64歩(63) ▲46銀(57) △32銀(31) ▲36歩(37) △43銀(32) ▲37桂(29) △74歩(73) ▲35歩(36) △同歩(34) ▲同銀(46) △32飛(42) ▲24歩(25) △同歩(23) ▲同銀(35)","line":["△22飛(32)|相手の悪手。駒の配置をよく見て、同時に2つの駒を狙える場所を探そう。","▲23銀成(24)/▲23歩打|飛車と角の両取り！ 相手はどちらか一方しか守れず、もう一方の駒が取れる。","△42飛(22)","▲33全(23)/▲25飛(28)|駒を取って駒得が確定。実戦では「相手の駒が2枚並んだら両取りを探す」のが攻めの基本。"]},{"id":"x03","lv":4,"cat":"seme","side":"w","title":"手筋：角と金の両取り【後手番】","desc":"「相掛かり棒銀」の途中で、相手がうっかり悪手を指した場面。銀を動かす一手で角と金を同時に狙い、駒得する。","setup":"▲16歩(17) △84歩(83) ▲26歩(27) △85歩(84) ▲25歩(26) △32金(41) ▲78金(69) △86歩(85) ▲同歩(87) △同飛(82) ▲87歩打 △82飛(86) ▲24歩(25) △同歩(23) ▲同飛(28) △23歩打 ▲28飛(24) △72銀(71) ▲38銀(39) △83銀(72) ▲76歩(77) △84銀(83) ▲46歩(47) △94歩(93) ▲96歩(97) △85銀(84) ▲47銀(38) △86歩打 ▲同歩(87) △同銀(85)","line":["▲68銀(79)|相手の悪手。駒の配置をよく見て、同時に2つの駒を狙える場所を探そう。","△87銀成(86)/△87銀不成(86)|角と金の両取り！ 相手はどちらか一方しか守れず、もう一方の駒が取れる。","▲同金(78)","△同飛成(82)|駒を取って駒得が確定。実戦では「相手の駒が2枚並んだら両取りを探す」のが攻めの基本。"]},{"id":"x04","lv":4,"cat":"seme","side":"w","title":"手筋：飛車と角の両取り【後手番】","desc":"「エルモ急戦の攻め方」の途中で、相手がうっかり悪手を指した場面。銀を動かす一手で飛車と角を同時に狙い、駒得する。","setup":"▲96歩(97) △34歩(33) ▲76歩(77) △84歩(83) ▲66歩(67) △62銀(71) ▲68飛(28) △42玉(51) ▲48玉(59) △32玉(42) ▲38玉(48) △52金(61) ▲28玉(38) △42銀(31) ▲38銀(39) △31金(41) ▲58金(69) △54歩(53) ▲77角(88) △53銀(62) ▲56歩(57) △85歩(84) ▲46歩(47) △64銀(53) ▲78銀(79) △74歩(73) ▲67銀(78) △73桂(81) ▲36歩(37) △75歩(74) ▲同歩(76) △同銀(64) ▲78飛(68) △86歩(85) ▲同歩(87) △同銀(75)","line":["▲88飛(78)|相手の悪手。駒の配置をよく見て、同時に2つの駒を狙える場所を探そう。","△87銀成(86)/△87歩打|飛車と角の両取り！ 相手はどちらか一方しか守れず、もう一方の駒が取れる。","▲68飛(88)","△77全(87)|駒を取って駒得が確定。実戦では「相手の駒が2枚並んだら両取りを探す」のが攻めの基本。"]}]);
+</script>
+<script>window.DrillAnswers={"u01":["5h6h","5h5i","9i9h"],"u02":["5h5i","7h7g","8i7g"],"u03":["5h5i","7h7g","8i7g"],"u04":["5h6h","5h5i","7h8g"],"u05":["8h7h","9i9h"],"u06":["6g6h","8h9g","8i9g"],"u07":["8h7h","9i9h"],"u08":["9f9e"],"u09":["8h7h"],"u10":["G*8g"],"u11":["S*9h"],"u12":["9f9e"],"u13":["8h9g","8i9g"],"u14":["7h7i","8h7i","9h9g"],"u15":["7h7i","8h7i","9h9g"],"u16":["8h9g","8i9g"],"u17":["8g8f"],"u18":["5h6h","7i6i","9i9h"],"u19":["6g5h","8i7g"],"u20":["5h6h","7i8h","7i6i"],"u21":["6g5h","9i9h"],"u22":["7h7g","8i7g"],"u23":["8h9g","9h9g"],"o01":["6i6h","S*7h"],"o02":["6h6g","7h8h"],"o03":["5h6g","7h6g"],"o04":["8h7h"],"o05":["2h7h","8h7h"],"o06":["2h7h","8h7h"],"o07":["8h7h"],"o08":["6i5i","S*7h"],"o09":["8h9h","9i9h"],"o10":["7h7g"],"o11":["2h7h","8h7h"],"o12":["2h7h","8h7h"],"o13":["8h9g","8i9g"],"o14":["7h7g","8i7g"],"o15":["6g7h","6i5i"],"o16":["7h6g","7h6i"],"o17":["2h5h","G*5h"],"o18":["7h7g"],"o19":["5h5i","6i5i"],"o20":["6h7g","7h7g"],"o21":["5h6g","7h6g"],"o22":["7h8h"],"o23":["6g5h","P*4g"],"o24":["5h5i"],"o25":["6h7g","7h7g"],"o26":["5h6g","7h6g"],"o27":["5h6g","7h6g"],"o28":["5h6g","7h6g"],"o29":["7h8h","7i8h"],"o30":["7h7g","7h8h"],"o31":["7h7g","7h8h"],"o32":["7h7g","7h8h"],"o33":["7h7g","7h8h"],"o34":["7h7g","7h8h"],"o35":["7h7g","7h8h"],"o36":["8h9g","8i9g"],"o37":["8g8f","7h7g"],"o38":["2h7h","8h7h"],"o39":["8h9g"],"o40":["8h9h","9i9h"],"o41":["2h7h","8h7h"],"o42":["6g7h","6i5i"],"o43":["7h7g","8i7g"],"o44":["6g7h"],"o45":["5h6g","7h6g"],"o46":["7h8h","7i8h"],"o47":["5h6h","7h6h"],"o48":["7h8h","7i8h"],"o49":["7h7g","7h8h"],"o50":["7h8h","7h6i"],"o51":["7h7g","8i7g"],"o52":["7h7g","8i7g"],"o53":["7h6g"],"o54":["5h6g","7h6g"],"o55":["5g6h","6i6h"],"o56":["6g7h","6i5i"],"o57":["5g6h","6i6h"],"o58":["5h5i","6i5i"],"o59":["7h7g","7h8h"],"o60":["7h7g","7h8h"],"o61":["8i7g"],"o62":["7h7g","7h8h"],"z01":["5a6a+"],"z02":["4a6a+"],"z03":["6b6a","6c7b"],"z04":["6c7b"],"z05":["1a6a+"],"z06":["4a6a+"],"z07":["2e6a+","2e6a"],"z08":["5e5c+","S*7b"],"z09":["R*7c"],"z10":["B*6a"],"z11":["S*7b"],"z12":["S*7b"],"z13":["2e6a+","2e6a","S*7b"],"z14":["N*8d"],"z15":["2e6a"],"z16":["4a6a"],"z17":["N*1d","N*3d"],"z18":["6c5b"],"z19":["N*5d"],"z20":["B*6e","G*1b"],"z21":["N*1d","N*3d"],"z22":["G*5c"],"z23":["S*2b"],"z24":["2e1c+","G*1b"],"z25":["1e1d","1e2d"],"z26":["8e8a","P*3b"],"z27":["9a6d+","9a6d","N*3e"],"z28":["4b4a","G*3a"],"z29":["S*3b"],"z30":["S*3b"],"z31":["5b4a+","5b4a"],"z32":["4b4a","4e3d"],"z33":["5c2c"],"z34":["3c2c","G*1c"],"z35":["G*2c"],"z36":["N*2d"],"z37":["S*1c"],"z38":["6a3d","G*1c"],"z39":["9a3a"],"z40":["8a3a"],"z41":["S*4a","S*4c"],"z42":["8b5b+","P*4b"],"z43":["2d2c"],"z44":["9e5a"],"z45":["G*3c","P*3c"],"z46":["G*3c","N*2d"],"z47":["9b5b"],"z48":["7c5a"],"z49":["6c7b"],"z50":["R*6c","R*7c"],"z51":["N*8e"],"z52":["S*7b"],"z53":["6c7b"],"z54":["S*7b"],"z55":["6c7b"],"z56":["R*7a"]};</script>
+<script>
+'use strict';
+const S = window.Shogi, DD = window.DrillData;
+const LEVELS = DD.LEVELS, CATS = DD.CATS;
+// 並び順: コース順、各ドリルの直後にその後手番版
+const DRILLS = (() => {
+  const src = DD.DRILLS, mirrored = {}, out = [];
+  for (const d of src) if (d.side === 'w' && /w$/.test(d.id) && src.some(x => x.id === d.id.slice(0, -1))) mirrored[d.id.slice(0, -1)] = d;
+  for (const d of src) { if (Object.values(mirrored).includes(d)) continue; out.push(d); if (mirrored[d.id]) out.push(mirrored[d.id]); }
+  return out.sort((a, b) => a.lv - b.lv);
+})();
+const BYID = Object.fromEntries(DRILLS.map(d => [d.id, d]));
+const ANS = window.DrillAnswers || {};
+const KEY = 'kibisha-dojo-v1';
+const INTERVAL = [0, 1, 3, 7, 14, 30, 60];
+const DAILY_SIZE = 7;
+const ENDGAME_LV = [5, 6]; // 受け・寄せは初日から毎日少しずつ
+
+// ---------- 保存 ----------
+function loadStore() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
+  s = s || {};
+  s.d = s.d || {}; s.q = s.q || {}; s.days = s.days || {}; s.cat = s.cat || {};
+  return s;
+}
+let ST = loadStore();
+function save() { try { localStorage.setItem(KEY, JSON.stringify(ST)); } catch (e) {} }
+function today(off = 0) { const d = new Date(); d.setDate(d.getDate() + off); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function dstat(id) { return ST.d[id] || { box: 0, tries: 0, perfect: 0, miss: 0, last: null, due: null }; }
+
+// ---------- 習熟・ランク ----------
+function mastery(id) { const b = dstat(id).box; return Math.min(b, 4) / 4; } // box4 = 習得
+function levelStats(lv) {
+  const ds = DRILLS.filter(d => d.lv === lv);
+  const tried = ds.filter(d => dstat(d.id).tries > 0).length;
+  const cleared = ds.filter(d => dstat(d.id).box >= 1).length;
+  const m = ds.reduce((a, d) => a + mastery(d.id), 0) / ds.length;
+  return { n: ds.length, tried, cleared, m };
+}
+function unlocked(lv) { if (lv === 1 || ENDGAME_LV.includes(lv)) return true; const p = levelStats(lv - 1); return p.cleared >= Math.min(Math.ceil(p.n * 0.6), 10) || unlocked2(lv); }
+function unlocked2(lv) { return DRILLS.some(d => d.lv === lv && dstat(d.id).tries > 0); }
+const RANKS = ['10級', '9級', '8級', '7級', '6級', '5級', '4級', '3級', '2級', '1級', '初段'];
+function overall() { return LEVELS.reduce((a, L) => a + levelStats(L.lv).m, 0) / LEVELS.length; } // コースごとに同じ重み
+function rankOf(m) { return RANKS[Math.min(10, Math.floor(m * 10 + 1e-9))]; }
+
+// ---------- 今日のドリル ----------
+function buildDaily() {
+  const t = today();
+  if (ST.daily && ST.daily.date === t) return ST.daily;
+  const picked = []; const why = {};
+  const add = (id, w) => { if (!picked.includes(id) && picked.length < DAILY_SIZE) { picked.push(id); why[id] = w; } };
+  // 新しい手順ドリル（解放済みのコースを下から順に）
+  const fresh = [];
+  for (const L of LEVELS) {
+    if (ENDGAME_LV.includes(L.lv)) continue;
+    if (!unlocked(L.lv)) break;
+    DRILLS.filter(d => d.lv === L.lv && !d.tsumero && dstat(d.id).tries === 0).forEach(d => fresh.push(d.id));
+  }
+  // 新しい終盤問題（1手詰 → 王手の受け → 3手詰 → 詰めろの受け の順に、寄せと受けを交互に）
+  const diff = d => d.mate === 1 ? 0 : d.oute ? 1 : d.mate === 3 ? 2 : d.tsumero ? 3 : 4;
+  const eg = DRILLS.filter(d => (ENDGAME_LV.includes(d.lv) || d.tsumero) && dstat(d.id).tries === 0);
+  const PRI = ['本美濃', '高美濃', '舟囲い', '金矢倉', '矢倉', 'エルモ囲い', '居飛車穴熊', '穴熊', '雁木', '銀冠'];
+  const grp = d => d.title.split(/を崩す|：|の受け|に詰めろ/)[0];
+  const rr = list => { // 難易度ごとに、囲いを順番に回す
+    const out = [];
+    for (const lv of [0, 1, 2, 3, 4]) {
+      const by = {}; list.filter(d => diff(d) === lv).forEach(d => (by[grp(d)] = by[grp(d)] || []).push(d));
+      const keys = Object.keys(by).sort((a, b) => (PRI.indexOf(a) + 99) % 99 - (PRI.indexOf(b) + 99) % 99);
+      for (let i = 0; keys.some(k => by[k][i]); i++) keys.forEach(k => by[k][i] && out.push(by[k][i]));
+    }
+    return out;
+  };
+  const ys = rr(eg.filter(d => d.mate || d.tsumero)), us = rr(eg.filter(d => d.uke && !d.tsumero));
+  const egFresh = []; for (let i = 0; i < Math.max(ys.length, us.length); i++) { if (ys[i]) egFresh.push(ys[i].id); if (us[i]) egFresh.push(us[i].id); }
+  const first = !DRILLS.some(d => dstat(d.id).tries);
+  const lineSlots = Math.min(fresh.length, first ? 4 : 2), egSlots = Math.min(egFresh.length, first ? 3 : 2);
+  const reviewCap = DAILY_SIZE - lineSlots - egSlots;
+  // 1) 弱点（最近間違えた手が多いドリル）
+  weakDrills().slice(0, 2).forEach(id => { if (picked.length < reviewCap) add(id, 'weak'); });
+  // 2) 期限が来た復習（間違いが多い順）
+  DRILLS.filter(d => { const s = dstat(d.id); return s.tries > 0 && s.due && s.due <= t; })
+    .sort((a, b) => (dstat(b.id).miss - dstat(a.id).miss) || (dstat(a.id).box - dstat(b.id).box))
+    .forEach(d => { if (picked.length < reviewCap) add(d.id, dstat(d.id).box <= 1 ? 'weak' : 'rev'); });
+  // 3) 新しいドリル
+  fresh.slice(0, lineSlots).forEach(id => add(id, 'new'));
+  egFresh.slice(0, egSlots).forEach(id => add(id, 'new'));
+  fresh.slice(lineSlots).forEach(id => add(id, 'new'));
+  egFresh.slice(egSlots).forEach(id => add(id, 'new'));
+  // 4) まだ枠が余れば、習熟度の低い順に
+  DRILLS.filter(d => dstat(d.id).tries > 0).sort((a, b) => dstat(a.id).box - dstat(b.id).box).forEach(d => add(d.id, 'rev'));
+  ST.daily = { date: t, ids: picked, why, done: [] }; save();
+  return ST.daily;
+}
+function weakDrills() {
+  const score = {};
+  for (const k in ST.q) { const [id] = k.split(':'); const q = ST.q[k]; if (!BYID[id]) continue; const w = q.miss - q.ok * 0.5; if (w > 0) score[id] = (score[id] || 0) + w; }
+  return Object.keys(score).sort((a, b) => score[b] - score[a]);
+}
+
+// ---------- ホーム画面 ----------
+let curLvTab = 1;
+function renderHome() {
+  const dl = buildDaily();
+  document.getElementById('todayDate').textContent = today().slice(5).replace('-', '/');
+  const left = dl.ids.filter(id => !dl.done.includes(id)).length;
+  document.getElementById('todayNote').textContent = left ? `全${dl.ids.length}本・残り${left}本（手順ドリル 3〜5分／詰み・受け 1分）` : '今日のドリルは完了！おつかれさまでした。弱点特訓や自由練習もどうぞ。';
+  const W = { new: ['new', '新規'], rev: ['rev', '復習'], weak: ['weak', '弱点'] };
+  document.getElementById('todayList').innerHTML = dl.ids.map(id => {
+    const d = BYID[id]; if (!d) return ''; const w = W[dl.why[id]] || W.rev;
+    return `<li><span class="tag ${w[0]}">${w[1]}</span><span>${d.title}<br><span class="muted">Lv${d.lv} ${LEVELS[d.lv - 1].name}・${CATS[d.cat]}</span></span><span class="done-mark">${dl.done.includes(id) ? '✅' : ''}</span></li>`;
+  }).join('');
+  document.getElementById('startToday').disabled = !left;
+  const m = overall();
+  document.getElementById('rankNow').textContent = rankOf(m) + '相当';
+  const need = Math.max(0, Math.ceil(DRILLS.length * 1 - DRILLS.reduce((a, d) => a + mastery(d.id), 0)));
+  document.getElementById('rankNext').textContent = m >= 1 ? '全ドリル習得！' : `習熟度 ${Math.round(m * 100)}%`;
+  document.getElementById('rankBar').style.width = (m * 100) + '%';
+  const tot = DRILLS.length, mastered = DRILLS.filter(d => dstat(d.id).box >= 4).length, tried = DRILLS.filter(d => dstat(d.id).tries > 0).length;
+  const qTotal = DRILLS.reduce((a, d) => a + qCount(d), 0);
+  document.getElementById('statLine').innerHTML = `ドリル ${tot}本（出題 約${qTotal}手）中、挑戦 <b>${tried}</b>本・習得 <b>${mastered}</b>本<br>※同じドリルを日を空けて4回連続ノーミスで「習得」。7コースすべての習熟度が100%で初段の目安。`;
+  let dh = '';
+  for (let i = -6; i <= 0; i++) { const t = today(i); const n = ST.days[t] || 0; dh += `<span class="${n ? 'on' : ''}" title="${t}: ${n}本">${t.slice(8)}</span>`; }
+  document.getElementById('days').innerHTML = dh;
+  document.getElementById('levels').innerHTML = LEVELS.map(L => {
+    const s = levelStats(L.lv); const ul = unlocked(L.lv);
+    return `<div class="lvrow ${ul ? '' : 'locked'}" onclick="curLvTab=${L.lv};renderList();document.getElementById('lvTabs').scrollIntoView({behavior:'smooth'})"><span>${ul ? '' : '🔒'}Lv${L.lv} ${L.name}</span><div class="meter"><i style="width:${s.m * 100}%"></i></div><span class="muted">${s.cleared}/${s.n}</span></div>`;
+  }).join('') + '<div class="muted" style="margin-top:6px">手順ドリルは、前のコースの6割（多いコースは10本）をノーミスでクリアすると次のコースが開きます。受け・寄せ（Lv5・6）は初日から毎日2問ずつ出題します。</div>';
+  const cs = Object.keys(CATS).map(c => { const x = ST.cat[c] || { ok: 0, ng: 0 }; const n = x.ok + x.ng; return { c, n, r: n ? x.ok / n : null }; });
+  const worst = cs.filter(x => x.n >= 5).sort((a, b) => a.r - b.r)[0];
+  document.getElementById('cats').innerHTML = cs.map(x => `<div class="catrow ${worst && worst.c === x.c ? 'weakest' : ''}"><span>${CATS[x.c]}${worst && worst.c === x.c ? ' ⚠' : ''}</span><div class="meter"><i style="width:${(x.r || 0) * 100}%"></i></div><span class="muted">${x.r == null ? '—' : Math.round(x.r * 100) + '%'}</span></div>`).join('');
+  const wl = weakDrills().slice(0, 4).map(id => BYID[id].title);
+  document.getElementById('weakList').innerHTML = wl.length ? '間違いが多いドリル：<br>・' + wl.join('<br>・') : 'まだデータがありません。ドリルを解くと弱点が表示されます。';
+  renderList();
+}
+function renderList() {
+  document.getElementById('lvTabs').innerHTML = LEVELS.map(L => `<button class="${curLvTab === L.lv ? 'on' : ''}" onclick="curLvTab=${L.lv};renderList()">Lv${L.lv} ${L.name}</button>`).join('');
+  const L = LEVELS[curLvTab - 1];
+  document.getElementById('drillList').innerHTML = `<div class="muted" style="grid-column:1/-1">${L.sub}</div>` + DRILLS.filter(d => d.lv === curLvTab).map(d => {
+    const s = dstat(d.id); const st = s.box >= 4 ? '🏅' : s.box >= 1 ? '✅' : s.tries ? '🔁' : '⬜';
+    return `<div class="ditem" onclick="startQueue(['${d.id}'],'free')"><span class="st">${st}</span><span><b>${d.title}</b><span class="muted">${CATS[d.cat]}・${d.side === 'w' ? '後手番' : '先手番'}・${qCount(d)}問</span></span></div>`;
+  }).join('');
+}
+function qCount(d) { if (d.mate) return Math.ceil(d.mate / 2); if (d.uke) return 1; return d.line.filter(e => isMine(d, e)).length; }
+function isMine(d, e) { return (e[0] === '▲' ? 0 : 1) === (d.side === 'w' ? 1 : 0); }
+
+// ---------- 出題 ----------
+let Q = null; // 進行中のキュー
+let P = null; // 進行中のドリル
+function startToday() { const dl = buildDaily(); startQueue(dl.ids.filter(id => !dl.done.includes(id)), 'daily'); }
+function startWeak() {
+  let ids = weakDrills().slice(0, 6);
+  if (!ids.length) ids = DRILLS.filter(d => dstat(d.id).tries > 0).sort((a, b) => dstat(a.id).box - dstat(b.id).box).slice(0, 6).map(d => d.id);
+  if (!ids.length) { alert('まだ弱点データがありません。まずは今日のドリルから始めましょう。'); return; }
+  startQueue(ids, 'weak');
+}
+function startQueue(ids, mode) {
+  Q = { ids, i: 0, mode, results: [] };
+  document.getElementById('home').style.display = 'none';
+  document.getElementById('play').style.display = 'block';
+  document.getElementById('homeBtn').style.display = '';
+  startDrill(BYID[ids[0]]);
+  window.scrollTo(0, 0);
+}
+function goHome() {
+  P = null; Q = null;
+  document.getElementById('home').style.display = '';
+  document.getElementById('play').style.display = 'none';
+  document.getElementById('homeBtn').style.display = 'none';
+  renderHome();
+}
+
+function startDrill(d) {
+  const pos0 = d.sfen ? S.parseSfen(d.sfen) : S.parseSfen(S.START_SFEN);
+  P = { d, pos: pos0, last: null, kifu: [], qi: 0, results: [], step: 0, tries: 0, hint: false, sel: null, busy: false, done: false, mateLeft: d.mate || 0 };
+  P.flip = d.side === 'w';
+  P.me = d.side === 'w' ? 1 : 0;
+  // 手順（setup）を盤に反映
+  for (const t of (d.setup || '').trim().split(/\s+/).filter(Boolean)) playMove(S.resolve(P.pos, t, P.last), false);
+  P.entries = (d.line || []).map(e => { const [mv, cm] = e.split('|'); return { mv, cm: cm || '' }; });
+  P.nQ = qCount(d);
+  const tagC = { kumi: 'new', seme: 'weak', uke: 'rev', yose: 'weak', taisaku: 'rev' };
+  document.getElementById('pTag').className = 'tag ' + (tagC[d.cat] || 'new');
+  document.getElementById('pTag').textContent = 'Lv' + d.lv + ' ' + CATS[d.cat];
+  document.getElementById('pTitle').textContent = d.title;
+  document.getElementById('pDesc').textContent = d.desc || '';
+  document.getElementById('pSide').textContent = (d.side === 'w' ? 'あなたは後手（☖）です。盤は後手側から見た向きです。' : 'あなたは先手（☗）です。') + (d.setup ? '　ここまでの手順は下の棋譜を参照。' : '');
+  setComment('');
+  renderQueueInfo();
+  render();
+  advance();
+}
+function renderQueueInfo() {
+  const el = document.getElementById('queueInfo');
+  if (!Q) { el.textContent = ''; return; }
+  const name = { daily: '今日のドリル', weak: '弱点特訓', free: '自由練習' }[Q.mode];
+  el.textContent = Q.ids.length > 1 ? `${name}　${Q.i + 1} / ${Q.ids.length} 本目` : name;
+}
+
+function playMove(m, animate) {
+  P.kifu.push({ label: S.moveLabel(P.pos, m, P.last), mine: false });
+  P.pos = S.applyMove(P.pos, m); P.last = m.to; P.lastMove = m;
+}
+
+// 次の状態へ進める（相手の手を自動で指す）
+function advance() {
+  const d = P.d;
+  if (d.mate || d.uke) { askMine(); return; }
+  if (P.step >= P.entries.length) { finishDrill(); return; }
+  const e = P.entries[P.step];
+  if (isMine(d, e.mv)) { askMine(); return; }
+  // 相手の手
+  P.busy = true;
+  setTimeout(() => {
+    const m = S.resolve(P.pos, e.mv.split('/')[0], P.last);
+    playMove(m, true);
+    if (e.cm) setComment((P.lastComment ? P.lastComment + '<br>' : '') + '<span class="muted">相手：</span>' + esc(e.cm));
+    P.step++; P.busy = false; render(); advance();
+  }, 450);
+}
+function askMine() {
+  P.tries = 0; P.hint = false;
+  const side = P.me === 0 ? '☗先手' : '☖後手';
+  let txt = `${side}の番です。次の一手は？`;
+  if (P.d.mate) txt = P.mateLeft === P.d.mate ? `${side}の番。${P.d.mate}手で詰ませてください。` : `あと1手。詰ませてください。`;
+  if (P.d.tsumero) txt = `${side}の番。王手をかけずに「詰めろ」（次に詰む形）をかけてください。`;
+  else if (P.d.uke) txt = P.d.oute ? `${side}の番。王手です！ 詰まされない応手は？` : `${side}の番。相手の「詰めろ」（次に詰む狙い）を受けてください。`;
+  setPrompt(txt, '');
+  setActions([['ヒント', showHint], ['正解を見る', reveal]]);
+  render();
+}
+function expectedMoves() {
+  const d = P.d;
+  if (d.mate) {
+    return S.mateMoves(P.pos, P.mateLeft);
+  }
+  if (d.uke) return (ANS[d.id] || []).map(u => S.legalMoves(P.pos).find(m => S.moveToUsi(m) === u)).filter(Boolean);
+  const e = P.entries[P.step]; const alts = e.mv.split('/');
+  const mark = e.mv[0];
+  return alts.map((a, i) => S.resolve(P.pos, (i && !/^[▲△]/.test(a) ? mark : '') + a, P.last));
+}
+function onUserMove(m) {
+  const exp = expectedMoves();
+  const hit = exp.findIndex(x => S.sameMove(x, m));
+  const qkey = P.d.id + ':' + P.qi;
+  if (hit >= 0) {
+    const first = P.tries === 0 && !P.hint;
+    recordQ(qkey, first);
+    P.results[P.qi] = first ? 'ok' : 'ng';
+    P.qi++;
+    let main = m;
+    let note = '';
+    if (!P.d.mate && !P.d.uke) {
+      main = exp[0];
+      if (hit > 0) note = `<b>${esc(S.moveLabel(P.pos, m, P.last))}</b>も正解です。この練習では本線の${esc(S.moveLabel(P.pos, main, P.last))}で進めます。<br>`;
+    }
+    playMove(main, false); P.kifu[P.kifu.length - 1].mine = true;
+    setPrompt(first ? '〇 正解！' : '〇 正解（ヒント・やり直しあり）', 'ok');
+    if (P.d.mate) {
+      P.mateLeft -= 2; render();
+      if (S.isMate(P.pos)) { setComment(note + '詰みました！ 囲いの急所を覚えておきましょう。'); setActions([['次へ', finishDrill, 'primary']]); return; }
+      // 玉方の応手（一番粘る手を選ぶ）
+      setTimeout(() => { const rep = bestDefense(P.pos); playMove(rep); setComment('相手は' + esc(P.kifu[P.kifu.length - 1].label) + 'と応じました。'); P.busy = false; render(); askMine(); }, 450);
+      P.busy = true; setComment(note); return;
+    }
+    if (P.d.tsumero) {
+      render();
+      const nul = S.clone(P.pos); nul.turn = P.me; const th = S.mateMoves(nul, 1)[0] || S.mateMoves(nul, 3)[0];
+      setComment(note + (th ? `次に <b>${esc(S.moveLabel(nul, th))}</b> で詰む形です。` : '') + '寄せは「王手より詰めろ」。王手は逃げられると攻めが続かないが、詰めろなら相手は受けに手を使うしかない。');
+      setActions([['次へ', finishDrill, 'primary']]); return;
+    }
+    if (P.d.uke) {
+      render();
+      setComment(note + (P.d.oute ? 'これで詰みを逃れました。王手の応手は「取る・逃げる・合駒」の3通りを必ず全部比べる。' : 'これで相手の詰み筋が消えました。受けは「相手の一番の狙いを消す」のが基本。'));
+      setActions([['次へ', finishDrill, 'primary']]); return;
+    }
+    const cm = P.entries[P.step].cm;
+    P.lastComment = note + esc(cm);
+    setComment(P.lastComment);
+    P.step++;
+    render();
+    setActions([]);
+    setTimeout(() => { P.lastComment = P.lastComment; advance(); }, 650);
+  } else {
+    P.tries++;
+    if (P.tries === 1) {
+      recordQ(qkey, false, true);
+      let why = 'もう一度考えてみましょう。';
+      if (P.d.tsumero) {
+        const n = S.applyMove(P.pos, m);
+        why = S.inCheck(n, 1 - P.me) ? '王手は逃げられると攻めが切れます。王手ではなく、次に詰む形を作る手を探しましょう。' : 'その手では、相手が何もしなくても次に詰みません。玉の逃げ道と、持ち駒で詰ませる場所を考えましょう。';
+      } else if (P.d.uke) {
+        const n = S.applyMove(P.pos, m); const mt = S.mateMoves(n, 1)[0] || S.mateMoves(n, 3)[0];
+        if (mt) why = `その手だと ${esc(S.moveLabel(n, mt))} で詰まされてしまいます。`;
+      } else if (P.d.mate) {
+        const n = S.applyMove(P.pos, m);
+        why = S.inCheck(n, 1 - P.me) ? 'その王手では逃げられてしまいます。' : '詰みの問題では王手を続けるのが基本です。';
+      }
+      setPrompt('✕ 違います（1回目）', 'ng'); setComment(why + ' ヒントも使えます。');
+      render();
+    } else {
+      setPrompt('✕ 違います', 'ng'); reveal();
+    }
+  }
+}
+function bestDefense(pos) {
+  // 攻め方の詰め手が一番少なくなる応手（粘る手）を選ぶ
+  let best = null, bn = 1e9;
+  for (const m of S.legalMoves(pos)) { const n = S.applyMove(pos, m); const k = S.mateMoves(n, 1).length; const score = k + (m.drop ? 0.5 : 0); if (score < bn) { bn = score; best = m; } }
+  return best;
+}
+function showHint() {
+  const exp = expectedMoves()[0]; if (!exp) return;
+  P.hint = true;
+  P.hintSq = exp.drop ? null : exp.from;
+  P.hintDrop = exp.drop ? exp.drop : null;
+  setComment(exp.drop ? `ヒント：持ち駒の<b>${S.KANJI[exp.drop]}</b>を使います。` : 'ヒント：枠で囲んだ駒を動かします。');
+  render();
+}
+function reveal() {
+  const exp = expectedMoves()[0]; if (!exp) return;
+  const qkey = P.d.id + ':' + P.qi;
+  if (P.tries === 0) recordQ(qkey, false, true);
+  P.tries = 9; P.hint = true;
+  P.results[P.qi] = 'ng';
+  const label = S.moveLabel(P.pos, exp, P.last);
+  P.hintSq = exp.drop ? null : exp.from; P.revealTo = exp.to;
+  render();
+  const cm = (!P.d.mate && !P.d.uke) ? P.entries[P.step].cm : '';
+  setPrompt('正解は ' + label, 'ng');
+  setComment(esc(cm) + '<br><span class="muted">盤上で正解の手を指して進めてください。</span>');
+}
+
+// ---------- 記録 ----------
+function recordQ(k, ok, onlyMiss) {
+  ST.q[k] = ST.q[k] || { ok: 0, miss: 0 };
+  const c = P.d.cat; ST.cat[c] = ST.cat[c] || { ok: 0, ng: 0 };
+  if (ok) { ST.q[k].ok++; ST.cat[c].ok++; }
+  else if (onlyMiss) { ST.q[k].miss++; ST.cat[c].ng++; }
+  save();
+}
+function finishDrill() {
+  if (P.done) return; P.done = true;
+  const d = P.d; const s = dstat(d.id);
+  const ng = P.results.filter(r => r === 'ng').length; const okN = P.results.filter(r => r === 'ok').length;
+  const perfect = ng === 0;
+  s.tries++; s.last = today();
+  if (perfect) { s.perfect++; s.box = Math.min(6, s.box + 1); }
+  else { s.miss += ng; s.box = s.box >= 3 ? 2 : (s.box >= 1 ? 1 : 0); }
+  s.due = today(perfect ? INTERVAL[s.box] : 1);
+  ST.d[d.id] = s;
+  ST.days[today()] = (ST.days[today()] || 0) + 1;
+  if (Q && Q.mode === 'daily' && ST.daily && !ST.daily.done.includes(d.id)) ST.daily.done.push(d.id);
+  save();
+  if (Q) Q.results.push({ id: d.id, perfect, ng });
+  const nextTxt = perfect ? (s.box >= 4 ? '🏅 習得！' : `次の復習：${INTERVAL[s.box]}日後`) : '明日もう一度出題します（弱点に登録）';
+  setPrompt(perfect ? `ノーミス！ ${okN}問全問正解` : `${okN + ng}問中 ${okN}問正解`, perfect ? 'ok' : 'ng');
+  const point = d.point ? `<br><b>ポイント：</b>${esc(d.point)}` : '';
+  setComment(nextTxt + point);
+  const more = Q && Q.i + 1 < Q.ids.length;
+  setActions([
+    more ? ['次のドリルへ', nextDrill, 'primary'] : ['ホームに戻る', goHome, 'primary'],
+    ['もう一度', () => startDrill(d)],
+  ]);
+  render();
+}
+function nextDrill() { Q.i++; renderQueueInfo(); startDrill(BYID[Q.ids[Q.i]]); }
+
+// ---------- 盤の描画と操作 ----------
+function esc(s) { return String(s || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]); }
+function setPrompt(t, cls) { const el = document.getElementById('prompt'); el.textContent = t; el.className = 'prompt ' + (cls || ''); }
+function setComment(h) { document.getElementById('comment').innerHTML = h; }
+function setActions(list) {
+  const el = document.getElementById('actions'); el.innerHTML = '';
+  for (const [label, fn, cls] of list) { const b = document.createElement('button'); b.className = 'btn ' + (cls || ''); b.textContent = label; b.onclick = fn; el.appendChild(b); }
+}
+function pieceHtml(p, viewerColor) {
+  const k = S.typeKey(p); let ch = S.KANJI[k]; if (k === 'K' && S.colorOf(p) === 1) ch = '王';
+  const opp = S.colorOf(p) !== viewerColor;
+  return `<span class="pc ${opp ? 'opp' : ''} ${S.isProm(p) ? 'prom' : ''}">${ch}</span>`;
+}
+function render() {
+  if (!P) return;
+  const view = P.flip ? 1 : 0;
+  const files = view ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [9, 8, 7, 6, 5, 4, 3, 2, 1];
+  const ranks = view ? [9, 8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  document.getElementById('fcoord').innerHTML = files.map(f => `<span>${f}</span>`).join('');
+  document.getElementById('rcoord').innerHTML = ranks.map(r => `<span>${S.RANK_KANJI[r]}</span>`).join('');
+  const dests = new Set();
+  if (P.sel) for (const m of S.legalMoves(P.pos)) { if (P.sel.drop ? m.drop === P.sel.drop : (!m.drop && m.from === P.sel.from)) dests.add(m.to); }
+  let h = '';
+  for (const r of ranks) for (const f of files) {
+    const i = S.sq(f, r); const p = P.pos.board[i];
+    const cls = ['cell'];
+    if (P.last === i) cls.push('last');
+    if (P.sel && !P.sel.drop && P.sel.from === i) cls.push('sel');
+    if (dests.has(i)) cls.push('dest');
+    if (P.hint && P.hintSq === i) cls.push('hint');
+    if (P.revealTo === i) cls.push('hint');
+    h += `<div class="${cls.join(' ')}" data-i="${i}">${p ? pieceHtml(p, view) : ''}</div>`;
+  }
+  document.getElementById('board').innerHTML = h;
+  // 持ち駒: 下 = 自分側
+  const bottom = view, top = 1 - view;
+  document.getElementById('handBottom').innerHTML = handHtml(bottom, true);
+  document.getElementById('handTop').innerHTML = handHtml(top, false);
+  // 棋譜
+  const k = P.kifu.map((x, n) => (x.mine ? '<b>' : '') + x.label + (x.mine ? '</b>' : '')).join(' ');
+  document.getElementById('kifu').innerHTML = (P.d.sfen ? '<span class="muted">（局面からスタート）</span> ' : '') + (k || '<span class="muted">初手から</span>');
+  const kel = document.getElementById('kifu'); kel.scrollTop = kel.scrollHeight;
+  // 問題の進み具合
+  let dots = '';
+  for (let n = 0; n < P.nQ; n++) dots += `<i class="${P.results[n] || (n === P.qi && !P.done ? 'cur' : '')}"></i>`;
+  document.getElementById('qdots').innerHTML = dots;
+}
+function handHtml(c, isBottom) {
+  const hand = P.pos.hands[c]; const who = (c === 0 ? '☗先手' : '☖後手') + (c === P.me ? '（あなた）' : '');
+  const keys = S.HAND_ORDER.filter(t => hand[t]);
+  const total = keys.reduce((a, t) => a + hand[t], 0);
+  let inner;
+  if ((P.d.mate || P.d.uke) && c !== P.me && total >= 10) inner = `<span class="rest">残りの駒すべて（${keys.map(t => S.KANJI[t] + (hand[t] > 1 ? hand[t] : '')).join(' ')}）</span>`;
+  else inner = keys.map(t => `<span class="hp ${P.sel && P.sel.drop === t && c === P.me ? 'sel' : ''} ${P.hint && P.hintDrop === t && c === P.me ? 'cell hint' : ''}" data-drop="${c === P.me ? t : ''}"><span class="pc ${c !== (P.flip ? 1 : 0) ? 'opp' : ''}">${S.KANJI[t]}</span>${hand[t] > 1 ? '<sub>' + hand[t] + '</sub>' : ''}</span>`).join('') || '<span class="rest">なし</span>';
+  return `<span class="who">${who}</span>${inner}`;
+}
+function canAct() { return P && !P.busy && !P.done && P.pos.turn === P.me && (P.d.mate || P.d.uke || (P.step < P.entries.length && isMine(P.d, P.entries[P.step].mv))) && !(P.results[P.qi] && !P.revealTo && false); }
+document.getElementById('board').addEventListener('click', ev => {
+  const cell = ev.target.closest('.cell'); if (!cell || !canAct()) return;
+  const i = +cell.dataset.i; const p = P.pos.board[i];
+  if (P.sel) {
+    const cands = S.legalMoves(P.pos).filter(m => m.to === i && (P.sel.drop ? m.drop === P.sel.drop : (!m.drop && m.from === P.sel.from)));
+    if (cands.length) {
+      P.sel = null;
+      if (cands.length === 2) askPromote(cands); else commit(cands[0]);
+      return;
+    }
+  }
+  if (p && S.colorOf(p) === P.me) P.sel = { from: i }; else P.sel = null;
+  render();
+});
+document.getElementById('handBottom').addEventListener('click', ev => {
+  const hp = ev.target.closest('[data-drop]'); if (!hp || !hp.dataset.drop || !canAct()) return;
+  P.sel = (P.sel && P.sel.drop === hp.dataset.drop) ? null : { drop: hp.dataset.drop }; render();
+});
+function askPromote(cands) {
+  const md = document.getElementById('promoModal'); md.style.display = 'flex';
+  document.getElementById('promoYes').onclick = () => { md.style.display = 'none'; commit(cands.find(m => m.promote)); };
+  document.getElementById('promoNo').onclick = () => { md.style.display = 'none'; commit(cands.find(m => !m.promote)); };
+}
+function commit(m) { P.revealTo = null; P.hintSq = null; P.hintDrop = null; P.hint = P.hint && P.tries > 0 ? P.hint : P.hint; onUserMove(m); render(); }
+function resetAll() { if (confirm('すべての進捗を消去します。よろしいですか？（元に戻せません）')) { ST = { d: {}, q: {}, days: {}, cat: {} }; save(); renderHome(); } }
+
+renderHome();
+</script>
+</body>
+</html>
